@@ -12,7 +12,7 @@ QUESTIONS_ID = 'questions_id'
 ANSWER = 'answer'
 
 
-def build_dictionary(file_path: str):
+def build_dictionary(file_path: str) -> Dictionary:
     """build token2id dictionary by the data in file_path
 
     Arguments:
@@ -25,6 +25,7 @@ def build_dictionary(file_path: str):
     # build dictionary
     dictionary = Dictionary()
     with pynlpir.open():
+
         for article in data:
             # extract article text
             article_title = article[ARTICLE_TITLE]
@@ -62,7 +63,7 @@ def build_dictionary(file_path: str):
                 dictionary.add_documents([segment1, segment2])
 
 
-def str_q2b(ustring: str):
+def str_q2b(ustring: str) -> str:
     """convert full string to half string
 
     Arguments:
@@ -81,5 +82,5 @@ def str_q2b(ustring: str):
 
 
 if __name__ == '__main__':
-    text_str = "ａｂｃ－＋－-ＡＢＣ１２３你好世界，。！、"
-    print(str_q2b(text_str))
+    dictionary = build_dictionary('./data/question.json')
+    dictionary.save('./data/dictionary.dict')
