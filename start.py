@@ -3,7 +3,9 @@ import logging
 
 import jieba
 from gensim.corpora import Dictionary
+from gensim.models import Word2Vec
 
+# setting for data
 ARTICLE_ID = 'article_id'
 ARTICLE_TITLE = 'article_title'
 ARTICLE_CONTENT = 'article_content'
@@ -11,6 +13,10 @@ QUESTIONS = 'questions'
 QUESTION = 'question'
 QUESTIONS_ID = 'questions_id'
 ANSWER = 'answer'
+
+# setting for embedding
+WINDOW_SIZE = 6
+EMBEDDING_SIZE = 124
 
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -27,36 +33,6 @@ def jieba_tokenize(text: str) -> list:
     tokens = list(jieba.cut(text, cut_all=False))
     tokens = [w for w in tokens if w != ' ']
     return tokens
-
-
-def text_gen(file_path: str) -> str:
-    """extract raw text from file
-
-    Arguments:
-        file_path {str} -- file path for saving data
-
-    Returns:
-        str -- convert from full to half
-    """
-    data = None
-    with open(file_path, mode='r', encoding='utf-8') as fp:
-        data = json.load(fp)
-
-    for article in data:
-        # extract article text
-        article_title = article[ARTICLE_TITLE]
-        article_content = article[ARTICLE_CONTENT]
-
-        yield article_title
-        yield article_content
-
-        for questions_obj in article[QUESTIONS]:
-            # extract question text
-            question = questions_obj[QUESTION]
-            answer = questions_obj[ANSWER]
-
-            yield question
-            yield answer
 
 
 def build_corpus(file_path: str, dictionary: Dictionary) -> list:
@@ -119,6 +95,63 @@ def build_dictionary(file_path: str) -> Dictionary:
         dictionary.add_documents([segment])
 
 
+def build_word2vec(file_path: str, size: int, window=5, min_count=5, workers=4) -> Word2Vec:
+    """bulld word2vec model
+
+    Arguments:
+        file_path {str} -- data file path
+        size {int} -- vocabulary size
+
+    Keyword Arguments:
+        window {int} -- window size (default: {5})
+        min_count {int} -- min count number (default: {1})
+        worker {int} -- process to use (default: {4})
+
+    Returns:
+        Word2Vec -- word2vec model
+    """
+
+    # init word2vec model
+    model = Word2Vec(size=size, window=window,
+                     min_count=min_count, workers=workers)
+
+    gen = text_gen(file_path)
+    for sentence in gen:
+        model.train([sentence])
+
+    return model
+
+
+def text_gen(file_path: str) -> str:
+    """extract raw text from file
+
+    Arguments:
+        file_path {str} -- file path for saving data
+
+    Returns:
+        str -- convert from full to half
+    """
+    data = None
+    with open(file_path, mode='r', encoding='utf-8') as fp:
+        data = json.load(fp)
+
+    for article in data:
+        # extract article text
+        article_title = article[ARTICLE_TITLE]
+        article_content = article[ARTICLE_CONTENT]
+
+        yield article_title
+        yield article_content
+
+        for questions_obj in article[QUESTIONS]:
+            # extract question text
+            question = questions_obj[QUESTION]
+            answer = questions_obj[ANSWER]
+
+            yield question
+            yield answer
+
+
 def str_q2b(ustring: str) -> str:
     """convert full string to half string
 
@@ -140,7 +173,11 @@ def str_q2b(ustring: str) -> str:
 if __name__ == '__main__':
     # dictionary = build_dictionary('./data/question.json')
     # dictionary.save('./data/jieba.dict')
-    dictionary = Dictionary.load('./data/jieba.dict')
-    data = build_corpus('./data/question.json', dictionary)
-    with open('./data/data.json', mode='w', encoding='utf-8') as fp:
-        json.dump(data, fp, ensure_ascii=False)
+    # dictionary = Dictionary.load('./data/jieba.dict')
+    # data = build_corpus('./data/question.json', dictionary)
+    # with open('./data/data.json', mode='w', encoding='utf-8') as fp:
+    #     json.dump(data, fp, ensure_ascii=False)
+    file_path = './data/data.json'
+    save_path = './data/word2vec.kv'
+    model = build_word2vec(file_path, EMBEDDING_SIZE, WINDOW_SIZE)
+    model.wv.save(save_path)
