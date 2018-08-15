@@ -30,6 +30,7 @@ def jieba_tokenize(text: str) -> list:
     """
 
     text = str_q2b(text)
+    text = text.lower()
     tokens = list(jieba.cut(text, cut_all=False))
     tokens = [w for w in tokens if w != ' ']
     return tokens
@@ -55,21 +56,21 @@ def build_corpus(file_path: str, dictionary: Dictionary) -> list:
     for idx, article in enumerate(data):
         article_content = article[ARTICLE_CONTENT]
         article_content = jieba_tokenize(article_content)
-        article_content = dictionary.doc2idx(article_content)
+        content = [str(idx) for idx in dictionary.doc2idx(article_content)]
         article_title = article[ARTICLE_TITLE]
         article_title = jieba_tokenize(article_title)
-        article_title = dictionary.doc2idx(article_title)
-        article[ARTICLE_CONTENT] = article_content
-        article[ARTICLE_TITLE] = article_title
+        title = [str[idx] for idx in dictionary.doc2idx(article_title)]
+        article[ARTICLE_CONTENT] = content
+        article[ARTICLE_TITLE] = title
 
         for questions_obj in article[QUESTIONS]:
             question = questions_obj[QUESTION]
             question = jieba_tokenize(question)
-            question = dictionary.doc2idx(question)
+            question = [str[idx] for idx in dictionary.doc2idx(question)]
             questions_obj[QUESTION] = question
             answer = questions_obj[ANSWER]
             answer = jieba_tokenize(answer)
-            answer = dictionary.doc2idx(answer)
+            answer = [str(idx) for idx in dictionary.doc2idx(answer)]
             questions_obj[ANSWER] = answer
 
         if idx % 100 == 0:
@@ -85,17 +86,14 @@ def build_dictionary(file_path: str) -> Dictionary:
     Arguments:
         file_path {str} -- path for data file
     """
-    # init dictionary
-    dictionary = Dictionary()
-
     # build raw text generator
     text_generator = text_gen(file_path)
-    for text in text_generator():
-        segment = jieba_tokenize(text)
-        dictionary.add_documents([segment])
+    dictionary = Dictionary([jieba_tokenize(sentence)
+                             for sentence in text_generator()])
+    return dictionary
 
 
-def build_word2vec(file_path: str, size: int, window=5, min_count=5, workers=4) -> Word2Vec:
+def build_word2vec(file_path: str, dictionary: Dictionary, size: int, window=5, min_count=5, workers=4) -> Word2Vec:
     """bulld word2vec model
 
     Arguments:
@@ -112,12 +110,11 @@ def build_word2vec(file_path: str, size: int, window=5, min_count=5, workers=4) 
     """
 
     # init word2vec model
-    model = Word2Vec(size=size, window=window,
-                     min_count=min_count, workers=workers)
 
     gen = text_gen(file_path)
-    for sentence in gen:
-        model.train([sentence])
+    sentences = [sent for sent in gen]
+    model = Word2Vec(sentences, size=size, window=window,
+                     min_count=min_count, workers=workers)
 
     return model
 
@@ -171,13 +168,13 @@ def str_q2b(ustring: str) -> str:
 
 
 if __name__ == '__main__':
-    # dictionary = build_dictionary('./data/question.json')
-    # dictionary.save('./data/jieba.dict')
+    dictionary = build_dictionary('./data/question.json')
+    dictionary.save('./data/jieba.dict')
     # dictionary = Dictionary.load('./data/jieba.dict')
     # data = build_corpus('./data/question.json', dictionary)
     # with open('./data/data.json', mode='w', encoding='utf-8') as fp:
     #     json.dump(data, fp, ensure_ascii=False)
-    file_path = './data/data.json'
-    save_path = './data/word2vec.kv'
-    model = build_word2vec(file_path, EMBEDDING_SIZE, WINDOW_SIZE)
-    model.wv.save(save_path)
+    # file_path = './data/data.json'
+    # save_path = './data/word2vec.kv'
+    # model = build_word2vec(file_path, EMBEDDING_SIZE, WINDOW_SIZE)
+    # model.wv.save(save_path)
