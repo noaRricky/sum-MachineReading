@@ -1,0 +1,131 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.nn.init as init
+
+
+class AttentionGRUCell(nn.Module):
+    """a attention gru cell
+
+    Arguments:
+        input_size {int} -- The number of expected features in the input 'x'
+        hidden_size {int} -- The number of features in the hidden state 'h'
+
+    Returns:
+        [type] -- [description]
+    """
+
+    def __init__(self, input_size, hidden_size):
+        super(AttentionGRUCell, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.Wr = nn.Linear(input_size, hidden_size, bias=False)
+        init.xavier_normal_(self.Wr.weight)
+        self.Ur = nn.Linear(hidden_size, hidden_size, bias=True)
+        init.xavier_normal_(self.Ur.weight)
+        self.W = nn.Linear(input_size, hidden_size, bias=True)
+        init.xavier_normal_(self.W.weight)
+        self.U = nn.Linear(hidden_size, hidden_size, bias=False)
+        init.xavier_normal_(self.U.weight)
+
+    def forward(self, fact, c, g) -> torch.tensor:
+        """forward step of the cell
+
+        Arguments:
+            fact {number} -- shape '(batch, )' the softmax result fo input module
+            c {torch.tensor} -- shape '(batch, hidden_size)'
+            g {tensor} -- shape ‘(batch,)’
+
+        Returns:
+            torch.tensor -- [description]
+        """
+        r = F.sigmoid(self.Wr(fact) + self.Ur(c))
+        h_tilda = F.tanh(self.W(fact) + r * self.U(c))
+        g = g.unsqueeze(1).expand_as(h_tilda)
+        h = g * h_tilda + (1 - g) * c
+        return h
+
+
+class AttentionGRU(nn.Module):
+    def __init__(self, input_size, hidden_size):
+        super(AttentionGRU, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.AGRUCell = AttentionGRUCell(input_size, hidden_size)
+
+    def forward(self, facts, G) -> torch.tensor:
+        """forwar step
+
+        Arguments:
+            facts {tensor} -- shape '(seq_len, batch, hidden_size)'
+            G {tensor} -- shape '(batch, sentence)'
+
+        Returns:
+            c {tensor} -- shape '(batch, hidden_size)'
+        """
+        seq_num, batch_num, hidden_size = facts.size()
+        c = torch.zeros((batch_num, hidden_size))
+        for sid in range(seq_num):
+            fact = facts[sid]
+            g = G[:, sid]
+            c = self.AGRUCell.forward(fact, c, g)
+        return c
+
+
+class EpisodicMemory(nn.Module):
+    def __init__(self, hidden_size):
+        self.AGRU = AttentionGRU(hidden_size, hidden_size)
+        self.z1 = nn.Linear(4 * hidden_size, hidden_size)
+        self.z2 = nn.Linear(hidden_size, 1)
+        self.next_mem = nn.Linear(3 * hidden_size, hidden_size)
+        init.xavier_normal_(self.z1.weight)
+        init.xavier_normal_(self.z2.weight)
+        init.xavier_normal_(self.next_mem.weight)
+        # TODO: modify init way for Relu activate function
+
+    def make_interaction(self, facts, questions, prev_memory) -> torch.tensor:
+        """make interaction from different memory
+
+        Arguments:
+            facts {tenor} -- shape '(seq_len, batch, hidden_size)'
+            questions {tensor} -- shape '(1, batch, hidden_size)'
+            prev_memeory {tensor} -- shape '(1, batch, hidden_size)'
+
+        Returns:
+            G {tensor} -- shape '(batch, seq_len)'
+        """
+        batch_num, seq_num, hidden_size = facts.size()
+        questions = questions.expand_as(facts)
+        prev_memory = prev_memory.expand_as(facts)
+
+        z = torch.cat([facts * questions,
+                       facts * prev_memory,
+                       torch.abs(facts - questions),
+                       torch.abs(facts - prev_memory)])
+
+        z = z.view(-1, 4 * hidden_size)
+
+        G = F.tanh(self.z1(z))
+        G = self.z2(G)
+        G = G.view(batch_num, -1)
+        G = F.softmax(F)
+
+        return G
+
+    def forward(self, facts, questions, prev_memory) -> torch.tensor:
+        """[summary]
+
+        Arguments:
+            facts {tensor} -- shape '(seq_len, batch, hidden_size)'
+            questions {tensor} -- shape '(1, batch, hidden_size)'
+            prev_memory {tensor} -- shape '(1, batch, seq_len)'
+
+        Returns:
+            next_memory {tensor} -- shape '(1, batch, seq_len)'
+        """
+        G = self.make_interaction(facts, questions, prev_memory)
+        C = self.AGRU.forward(facts, G)
+        concat = torch.cat([prev_memory.squeeze(0), C, questions.squeeze(0)])
+        next_memory = self.next_mem(concat)
+        next_memory = F.relu(next_memory)
+        return next_memory
