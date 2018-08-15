@@ -29,14 +29,14 @@ def jieba_tokenize(text: str) -> list:
         text {str} -- raw text
     """
 
-    text = str_q2b(text)
-    text = text.lower()
-    tokens = list(jieba.cut(text, cut_all=False))
-    tokens = [w for w in tokens if w != ' ']
+    text = str_q2b(text)  # convert full str into half str
+    text = text.lower()  # lowercase
+    tokens = list(jieba.cut(text, cut_all=False))  # generate segment by jieba
+    tokens = [w for w in tokens if w != ' ']  # fliter ' ' str
     return tokens
 
 
-def build_corpus(file_path: str, dictionary: Dictionary) -> list:
+def build_corpus(file_path: str) -> list:
     """build data corpus convert each word to id
 
     Arguments:
@@ -56,21 +56,17 @@ def build_corpus(file_path: str, dictionary: Dictionary) -> list:
     for idx, article in enumerate(data):
         article_content = article[ARTICLE_CONTENT]
         article_content = jieba_tokenize(article_content)
-        content = [str(idx) for idx in dictionary.doc2idx(article_content)]
         article_title = article[ARTICLE_TITLE]
         article_title = jieba_tokenize(article_title)
-        title = [str[idx] for idx in dictionary.doc2idx(article_title)]
-        article[ARTICLE_CONTENT] = content
-        article[ARTICLE_TITLE] = title
+        article[ARTICLE_CONTENT] = article_content
+        article[ARTICLE_TITLE] = article_title
 
         for questions_obj in article[QUESTIONS]:
             question = questions_obj[QUESTION]
             question = jieba_tokenize(question)
-            question = [str[idx] for idx in dictionary.doc2idx(question)]
             questions_obj[QUESTION] = question
             answer = questions_obj[ANSWER]
             answer = jieba_tokenize(answer)
-            answer = [str(idx) for idx in dictionary.doc2idx(answer)]
             questions_obj[ANSWER] = answer
 
         if idx % 100 == 0:
@@ -89,7 +85,7 @@ def build_dictionary(file_path: str) -> Dictionary:
     # build raw text generator
     text_generator = text_gen(file_path)
     dictionary = Dictionary([jieba_tokenize(sentence)
-                             for sentence in text_generator()])
+                             for sentence in text_generator])
     return dictionary
 
 
@@ -168,13 +164,13 @@ def str_q2b(ustring: str) -> str:
 
 
 if __name__ == '__main__':
-    dictionary = build_dictionary('./data/question.json')
-    dictionary.save('./data/jieba.dict')
+    # dictionary = build_dictionary('./data/question.json')
+    # dictionary.save('./data/jieba.dict')
     # dictionary = Dictionary.load('./data/jieba.dict')
-    # data = build_corpus('./data/question.json', dictionary)
+    # data = build_corpus('./data/question.json')
     # with open('./data/data.json', mode='w', encoding='utf-8') as fp:
     #     json.dump(data, fp, ensure_ascii=False)
-    # file_path = './data/data.json'
-    # save_path = './data/word2vec.kv'
-    # model = build_word2vec(file_path, EMBEDDING_SIZE, WINDOW_SIZE)
-    # model.wv.save(save_path)
+    file_path = './data/data.json'
+    save_path = './data/word2vec.kv'
+    model = build_word2vec(file_path, EMBEDDING_SIZE, WINDOW_SIZE)
+    model.wv.save(save_path)
