@@ -69,7 +69,7 @@ class InputModule(nn.Module):
         Arguments:
             contexts {torch.Tenser} -- size: (batch, token_len)
             word_embedding {nn.Embedding} -- embeddng for each idx word
-        
+
         Returns:
             torch.tensor -- output.size() -> (seq_len, batch, 2 * hidden_size)
         """
