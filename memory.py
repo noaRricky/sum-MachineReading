@@ -67,8 +67,8 @@ class AttentionGRU(nn.Module):
         Returns:
             c {tensor} -- shape '(batch, hidden_size)'
         """
-        seq_num, batch_num, hidden_size = facts.size()
-        c = torch.zeros((batch_num, hidden_size))
+        seq_num, batch_num, facts_size = facts.size()
+        c = torch.zeros(batch_num, self.hidden_size)
         for sid in range(seq_num):
             fact = facts[sid]
             g = G[:, sid]
@@ -145,5 +145,17 @@ def test_attention_cell():
     print("context size: {}".format(c.size()))
 
 
+def test_attention_gru():
+    input_size = 2 * HIDDEN_SIZE
+    sentence_len = 4
+    batch_size = 2
+    attention_gru = AttentionGRU(input_size, HIDDEN_SIZE)
+    facts = torch.randn(sentence_len, batch_size, input_size)
+    G = torch.randn(batch_size, sentence_len)
+    context = attention_gru.forward(facts, G)
+    print("context size: {}".format(context.size()))
+    print("context value: \n{}".format(context))
+
+
 if __name__ == '__main__':
-    test_attention_cell()
+    test_attention_gru()
