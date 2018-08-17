@@ -123,5 +123,5 @@ def test_answer_module():
 
 if __name__ == '__main__':
     # input_model = InputModule(100, 30)
-    # test_input_module()
-    test_answer_module()
+    test_input_module()
+    # test_answer_module()

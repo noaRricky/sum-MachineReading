@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn.init as init
 
 VOCAL_SIZE = 100
@@ -36,7 +35,7 @@ class AttentionGRUCell(nn.Module):
         """forward step of the cell
 
         Arguments:
-            fact {number} -- shape '(batch, 2 * hidden_size)' one of the output facts input module
+            fact {number} -- shape '(batch, hidden_size)' one of the output facts input module
             c {torch.tensor} -- shape '(batch, hidden_size)'
             g {tensor} -- shape ‘(batch, )’
 
@@ -67,8 +66,8 @@ class AttentionGRU(nn.Module):
         Returns:
             c {tensor} -- shape '(batch, hidden_size)'
         """
-        seq_num, batch_num, facts_size = facts.size()
-        c = torch.zeros(batch_num, self.hidden_size)
+        seq_num, batch_num, hidden_size = facts.size()
+        c = torch.zeros(batch_num, hidden_size)
         for sid in range(seq_num):
             fact = facts[sid]
             g = G[:, sid]
@@ -78,6 +77,8 @@ class AttentionGRU(nn.Module):
 
 class EpisodicMemory(nn.Module):
     def __init__(self, hidden_size):
+        super(EpisodicMemory, self).__init__()
+
         self.AGRU = AttentionGRU(hidden_size, hidden_size)
         self.z1 = nn.Linear(4 * hidden_size, hidden_size)
         self.z2 = nn.Linear(hidden_size, 1)
@@ -98,21 +99,24 @@ class EpisodicMemory(nn.Module):
         Returns:
             G {tensor} -- shape '(batch, seq_len)'
         """
-        batch_num, seq_num, hidden_size = facts.size()
+        seq_len, batch_num, hidden_size = facts.size()
         questions = questions.expand_as(facts)
         prev_memory = prev_memory.expand_as(facts)
 
         z = torch.cat([facts * questions,
                        facts * prev_memory,
                        torch.abs(facts - questions),
-                       torch.abs(facts - prev_memory)])
+                       torch.abs(facts - prev_memory)], dim=2)
 
+        # print("concat size: {}".format(z.size()))
         z = z.view(-1, 4 * hidden_size)
+        # print("convert size: {}".format(z.size()))
 
-        G = F.tanh(self.z1(z))
+        G = torch.tanh(self.z1(z))
         G = self.z2(G)
         G = G.view(batch_num, -1)
-        G = F.softmax(F)
+
+        G = torch.softmax(G, dim=1)
 
         return G
 
@@ -122,23 +126,23 @@ class EpisodicMemory(nn.Module):
         Arguments:
             facts {tensor} -- shape '(seq_len, batch, hidden_size)'
             questions {tensor} -- shape '(1, batch, hidden_size)'
-            prev_memory {tensor} -- shape '(1, batch, seq_len)'
+            prev_memory {tensor} -- shape '(1, batch, hidden_size)'
 
         Returns:
-            next_memory {tensor} -- shape '(1, batch, seq_len)'
+            next_memory {tensor} -- shape '(1, batch, hidden_size)'
         """
         G = self.make_interaction(facts, questions, prev_memory)
         C = self.AGRU.forward(facts, G)
-        concat = torch.cat([prev_memory.squeeze(0), C, questions.squeeze(0)])
+        concat = torch.cat([prev_memory.squeeze(0), C, questions.squeeze(0)], dim=1)
+        print("concat size: {}".format(concat.size()))
         next_memory = self.next_mem(concat)
-        next_memory = F.relu(next_memory)
+        next_memory = torch.relu(next_memory)
         return next_memory
 
 
 def test_attention_cell():
-    input_size = 2 * HIDDEN_SIZE
-    attention_gru_cell = AttentionGRUCell(input_size, HIDDEN_SIZE)
-    fact = torch.randn(2, input_size)
+    attention_gru_cell = AttentionGRUCell(HIDDEN_SIZE, HIDDEN_SIZE)
+    fact = torch.randn(2, HIDDEN_SIZE)
     c = torch.randn(2, HIDDEN_SIZE)
     g = torch.randn(2)
     c = attention_gru_cell.forward(fact, c, g)
@@ -146,7 +150,7 @@ def test_attention_cell():
 
 
 def test_attention_gru():
-    input_size = 2 * HIDDEN_SIZE
+    input_size = HIDDEN_SIZE
     sentence_len = 4
     batch_size = 2
     attention_gru = AttentionGRU(input_size, HIDDEN_SIZE)
@@ -157,5 +161,20 @@ def test_attention_gru():
     print("context value: \n{}".format(context))
 
 
+def text_episodic_memory():
+    sentence_len = 4
+    batch_size = 2
+    episodic_memory = EpisodicMemory(HIDDEN_SIZE)
+    facts = torch.randn(sentence_len, batch_size, HIDDEN_SIZE)
+    questions = torch.randn(1, batch_size, HIDDEN_SIZE)
+    memory = torch.randn(1, batch_size, HIDDEN_SIZE)
+    g = episodic_memory.make_interaction(facts, questions, memory)
+    print("g size: {}".format(g.size()))
+    print("g value:\n {}".format(g))
+    memory = episodic_memory.forward(facts, questions, memory)
+    print("memory size: {}".format(memory.size()))
+
+
 if __name__ == '__main__':
-    test_attention_gru()
+    # test_attention_gru()
+    text_episodic_memory()
