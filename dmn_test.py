@@ -78,12 +78,13 @@ def test_answer_module():
     memory = torch.randn(1, 2, HIDDEN_SIZE)
     questions = torch.randn(1, 2, HIDDEN_SIZE)
     hidden = torch.cat([memory, questions], dim=2)
-    TOTAL_TURN = 5
-    for turn in range(TOTAL_TURN):
-        print("insize for")
-        output, hidden = answer_module.forward(hidden, words, word_embedding)
-        _, words = output.topk(1)
-        words = words.long()
+    words, hidden = answer_module.forward(hidden, words, word_embedding)
+    # TOTAL_TURN = 5
+    # for turn in range(TOTAL_TURN):
+    #     # print("insize for")
+    #     output, hidden = answer_module.forward(hidden, words, word_embedding)
+    #     _, words = output.topk(1)
+    #     words = words.long()
     print("words size: {}".format(words.size()))
 
 
@@ -100,6 +101,6 @@ def test_dmn():
 if __name__ == '__main__':
     # input_model = InputModule(100, 30)
     # test_input_module()
-    # test_answer_module()
-    test_dmn()
+    test_answer_module()
+    # test_dmn()
     # text_episodic_memory()
