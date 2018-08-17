@@ -131,7 +131,8 @@ class EpisodicMemory(nn.Module):
         C = self.AGRU.forward(facts, G)
         concat = torch.cat([prev_memory.squeeze(
             0), C, questions.squeeze(0)], dim=1)
-        print("concat size: {}".format(concat.size()))
+        # print("concat size: {}".format(concat.size()))
         next_memory = self.next_mem(concat)
         next_memory = torch.relu(next_memory)
+        next_memory = next_memory.unsqueeze(0)
         return next_memory

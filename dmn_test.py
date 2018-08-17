@@ -3,11 +3,15 @@ import torch.nn as nn
 
 from module import QuestionModule, AnswerModule, InputModule
 from memory import AttentionGRU, AttentionGRUCell, EpisodicMemory
+from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
 
 # parameters for testing
 VOCAL_SIZE = 100
 EMBEDED_SIZE = 30
 HIDDEN_SIZE = 30
+CONTEXTS_LEN = 10
+QUESTIONS_LEN = 5
+BATCH_SIZE = 2
 
 
 def test_attention_cell():
@@ -83,7 +87,19 @@ def test_answer_module():
     print("words size: {}".format(words.size()))
 
 
+def test_dmn():
+    model = DynamicMemoryNetworkPlus(VOCAL_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
+    contexts = torch.randint(VOCAL_SIZE, size=(
+        BATCH_SIZE, CONTEXTS_LEN), dtype=torch.long)
+    questions = torch.randint(VOCAL_SIZE, size=(
+        BATCH_SIZE, QUESTIONS_LEN), dtype=torch.long)
+    preds = model.forward(contexts, questions)
+    print("preds size: {}".format(preds))
+
+
 if __name__ == '__main__':
     # input_model = InputModule(100, 30)
-    test_input_module()
+    # test_input_module()
     # test_answer_module()
+    test_dmn()
+    # text_episodic_memory()
