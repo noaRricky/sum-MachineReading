@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
-VOCAL_SIZE = 100
-EMBEDED_SIZE = 30
-HIDDEN_SIZE = 30
-
 
 class AttentionGRUCell(nn.Module):
     """a attention gru cell
@@ -133,48 +129,9 @@ class EpisodicMemory(nn.Module):
         """
         G = self.make_interaction(facts, questions, prev_memory)
         C = self.AGRU.forward(facts, G)
-        concat = torch.cat([prev_memory.squeeze(0), C, questions.squeeze(0)], dim=1)
+        concat = torch.cat([prev_memory.squeeze(
+            0), C, questions.squeeze(0)], dim=1)
         print("concat size: {}".format(concat.size()))
         next_memory = self.next_mem(concat)
         next_memory = torch.relu(next_memory)
         return next_memory
-
-
-def test_attention_cell():
-    attention_gru_cell = AttentionGRUCell(HIDDEN_SIZE, HIDDEN_SIZE)
-    fact = torch.randn(2, HIDDEN_SIZE)
-    c = torch.randn(2, HIDDEN_SIZE)
-    g = torch.randn(2)
-    c = attention_gru_cell.forward(fact, c, g)
-    print("context size: {}".format(c.size()))
-
-
-def test_attention_gru():
-    input_size = HIDDEN_SIZE
-    sentence_len = 4
-    batch_size = 2
-    attention_gru = AttentionGRU(input_size, HIDDEN_SIZE)
-    facts = torch.randn(sentence_len, batch_size, input_size)
-    G = torch.randn(batch_size, sentence_len)
-    context = attention_gru.forward(facts, G)
-    print("context size: {}".format(context.size()))
-    print("context value: \n{}".format(context))
-
-
-def text_episodic_memory():
-    sentence_len = 4
-    batch_size = 2
-    episodic_memory = EpisodicMemory(HIDDEN_SIZE)
-    facts = torch.randn(sentence_len, batch_size, HIDDEN_SIZE)
-    questions = torch.randn(1, batch_size, HIDDEN_SIZE)
-    memory = torch.randn(1, batch_size, HIDDEN_SIZE)
-    g = episodic_memory.make_interaction(facts, questions, memory)
-    print("g size: {}".format(g.size()))
-    print("g value:\n {}".format(g))
-    memory = episodic_memory.forward(facts, questions, memory)
-    print("memory size: {}".format(memory.size()))
-
-
-if __name__ == '__main__':
-    # test_attention_gru()
-    text_episodic_memory()
