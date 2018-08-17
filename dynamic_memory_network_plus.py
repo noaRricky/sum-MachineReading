@@ -44,3 +44,12 @@ class DynamicMemoryNetworkPlus(nn.Module):
         preds = self.answer_module.forward(
             memory, questions, 0, self.word_embedding)
         return preds
+
+
+def train_network(data_path, dict_path):
+    # TODO: train dynamic memory networkk
+    print("hello world")
+
+
+if __name__ == '__main__':
+    print("hello world")

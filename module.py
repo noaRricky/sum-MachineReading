@@ -2,6 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
+VOCAL_SIZE = 100
+EMBEDED_SIZE = 30
+HIDDEN_SIZE = 30
+
+# TODO: implement chono init method
+
 
 class QuestionModule(nn.Module):
     def __init__(self, embeded_size, hidden_size):
@@ -19,8 +25,10 @@ class QuestionModule(nn.Module):
             torch.tensor -- size: (1, batch, hidden_size)
         """
         questions = word_embedding(questions)
+        # print('embeded questions size: {}'.format(questions.size()))
         # question.size -> batch_num, seq_len, input_size
         questions = questions.transpose(0, 1)
+        # print('questions transpose size: {}'.format(questions.size()))
         _, questions = self.gru(questions)
         return questions
 
@@ -32,36 +40,30 @@ class AnswerModule(nn.Module):
         self.z = nn.Linear(2 * hidden_size, vocab_size)
         init.xavier_normal_(self.z.weight)
 
-    def forward(self, memory, questions, answers, embedding):
+    def forward(self, hidden, answers, embedding):
         """generate answer by memory and questions
 
         Arguments:
-            memory {torch.tensor} -- size: (1, batch, hidden_size)
-            questions {torch.tensor} -- size: (1, batch, hidden_size)
+            hidden {torch.tensor} -- size: (1, batch, hidden_size * 2)
             answers {torch.tensor} -- size: (batch, 1)
 
         Returns:
             [type] -- [description]
         """
-
-        hidden = torch.cat([memory, questions], dim=2).squeeze(0)
         embeded = embedding(answers)
         embeded = embeded.transpose(0, 1)
-        output, _ = self.gru(embeded, hidden)
+        output, hidden = self.gru(embeded, hidden)
         # output.size() -> 1, batch, 2 * hidden_size
         output = output.squeeze(0)
-        word = self.z(output)
-        return word
+        words = self.z(output)
+        return words, hidden
 
 
 class InputModule(nn.Module):
     def __init__(self, embeded_size, hidden_size):
         super(InputModule, self).__init__()
         self.hidden_size = hidden_size
-        self.gru = nn.GRU(embeded_size, hidden_size, bidirectional=True)
-        for name, param in self.gru.named_parameters():
-            if 'weight' in name:
-                init.xavier_normal_(param)
+        self.gru = nn.GRU(embeded_size, hidden_size)
 
     def forward(self, contexts, embedding: nn.Embedding) -> torch.tensor:
         """forward input contexts
@@ -75,15 +77,50 @@ class InputModule(nn.Module):
         """
         contexts = embedding(contexts)
         # contexts.size() -> (batch, seq_len, embeded_size)
+        contexts = contexts.transpose(0, 1)
         output, _ = self.gru(contexts)
         return output
 
 
+def test_question_module():
+
+    question_module = QuestionModule(EMBEDED_SIZE, HIDDEN_SIZE)
+    embedding = nn.Embedding(VOCAL_SIZE, EMBEDED_SIZE)
+    questions = torch.tensor([[1, 2, 3, 4], [2, 3, 1, 2]], dtype=torch.long)
+    print('hidden size: {}'.format(HIDDEN_SIZE))
+    print('input question size: {}'.format(questions.size()))
+    questions = question_module.forward(questions, embedding)
+    print('questions size: {}'.format(questions.size()))
+
+
+def test_input_module():
+    input_module = InputModule(EMBEDED_SIZE, HIDDEN_SIZE)
+    embedding = nn.Embedding(VOCAL_SIZE, EMBEDED_SIZE)
+    contexts = torch.tensor([[1, 2, 3, 4], [2, 3, 1, 2]], dtype=torch.long)
+    print("hidden_size: {}".format(HIDDEN_SIZE))
+    print("context size: {}".format(contexts.size()))
+    facts = input_module.forward(contexts, embedding)
+    print("facts size: {}".format(facts.size()))
+
+
+def test_answer_module():
+    answer_module = AnswerModule(VOCAL_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
+    word_embedding = nn.Embedding(VOCAL_SIZE, EMBEDED_SIZE)
+    words = torch.zeros(2, 1, dtype=torch.long)
+    print("words size: {}".format(words.size()))
+    memory = torch.randn(1, 2, HIDDEN_SIZE)
+    questions = torch.randn(1, 2, HIDDEN_SIZE)
+    hidden = torch.cat([memory, questions], dim=2)
+    TOTAL_TURN = 5
+    for turn in range(TOTAL_TURN):
+        print("insize for")
+        output, hidden = answer_module.forward(hidden, words, word_embedding)
+        _, words = output.topk(1)
+        words = words.long()
+    print("words size: {}".format(words.size()))
+
+
 if __name__ == '__main__':
     # input_model = InputModule(100, 30)
-    VOCAL_SIZE = 100
-    HIDDEN_SIZE = 30
-    question_module = QuestionModule(VOCAL_SIZE, HIDDEN_SIZE)
-    embedding = nn.Embedding(VOCAL_SIZE, HIDDEN_SIZE)
-    questions = torch.tensor([[1, 2, 3, 4], [2, 3, 1, 2]], dtype=torch.long)
-    question_module.forward(questions, embedding)
+    # test_input_module()
+    test_answer_module()
