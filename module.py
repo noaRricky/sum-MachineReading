@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
+# parameters for testing
 VOCAL_SIZE = 100
 EMBEDED_SIZE = 30
 HIDDEN_SIZE = 30

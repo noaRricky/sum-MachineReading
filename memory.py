@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
+VOCAL_SIZE = 100
+EMBEDED_SIZE = 30
+HIDDEN_SIZE = 30
+
 
 class AttentionGRUCell(nn.Module):
     """a attention gru cell
@@ -32,18 +36,18 @@ class AttentionGRUCell(nn.Module):
         """forward step of the cell
 
         Arguments:
-            fact {number} -- shape '(batch, )' the softmax result fo input module
+            fact {number} -- shape '(batch, 2 * hidden_size)' one of the output facts input module
             c {torch.tensor} -- shape '(batch, hidden_size)'
-            g {tensor} -- shape ‘(batch,)’
+            g {tensor} -- shape ‘(batch, )’
 
         Returns:
             torch.tensor -- [description]
         """
-        r = F.sigmoid(self.Wr(fact) + self.Ur(c))
-        h_tilda = F.tanh(self.W(fact) + r * self.U(c))
+        r = torch.sigmoid(self.Wr(fact) + self.Ur(c))
+        h_tilda = torch.tanh(self.W(fact) + r * self.U(c))
         g = g.unsqueeze(1).expand_as(h_tilda)
-        h = g * h_tilda + (1 - g) * c
-        return h
+        c = g * h_tilda + (1 - g) * c
+        return c
 
 
 class AttentionGRU(nn.Module):
@@ -129,3 +133,17 @@ class EpisodicMemory(nn.Module):
         next_memory = self.next_mem(concat)
         next_memory = F.relu(next_memory)
         return next_memory
+
+
+def test_attention_cell():
+    input_size = 2 * HIDDEN_SIZE
+    attention_gru_cell = AttentionGRUCell(input_size, HIDDEN_SIZE)
+    fact = torch.randn(2, input_size)
+    c = torch.randn(2, HIDDEN_SIZE)
+    g = torch.randn(2)
+    c = attention_gru_cell.forward(fact, c, g)
+    print("context size: {}".format(c.size()))
+
+
+if __name__ == '__main__':
+    test_attention_cell()
