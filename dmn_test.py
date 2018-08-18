@@ -111,10 +111,21 @@ def text_dmnp_loss():
     print("loss : {}".format(loss))
 
 
+def test_dmnp_predict():
+    model = DynamicMemoryNetworkPlus(VOCAB_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
+    contexts = torch.randint(VOCAB_SIZE, size=(
+        BATCH_SIZE, CONTEXTS_LEN), dtype=torch.long)
+    questions = torch.randint(VOCAB_SIZE, size=(
+        BATCH_SIZE, QUESTIONS_LEN), dtype=torch.long)
+    preds = model.predict(contexts, questions)
+    print("preds:\n{}".format(preds))
+
+
 if __name__ == '__main__':
     # input_model = InputModule(100, 30)
     # test_input_module()
     # test_answer_module()
     # test_dmnp()
     # text_episodic_memory()
-    text_dmnp_loss()
+    # text_dmnp_loss()
+    test_dmnp_predict()

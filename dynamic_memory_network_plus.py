@@ -7,7 +7,7 @@ from memory import EpisodicMemory
 
 SOS_TOKEN = 0
 EOS_TOKEN = 1
-MAX_LENGTH = 1000
+MAX_LENGTH = 20
 
 
 class DynamicMemoryNetworkPlus(nn.Module):
@@ -26,6 +26,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
         # init num file
         self.num_hop = num_hop
         self.qa = qa
+        self.vocab_size = vocab_size
 
         # init network
         self.word_embedding = nn.Embedding(
@@ -39,19 +40,15 @@ class DynamicMemoryNetworkPlus(nn.Module):
             vocab_size, embeded_size, hidden_size)
         self.episodic_memory = EpisodicMemory(hidden_size)
 
-    def forward(self, contexts, questions, operation, max_length=MAX_LENGTH) -> torch.tensor:
+    def forward(self, contexts, questions, max_length=MAX_LENGTH) -> torch.tensor:
         """read contexts and question to generate answer
         Arguments:
             contexts {tensor} -- shape '(batch, token)'
             questions {tensor} -- shape '(batch, token)'
-            operation {str} -- ['train', 'predict'] 
-                when train the network will compute the loss
-                when predict the network will generate answers
             max_length {int} -- default max length of each answer
 
         Returns:
-            preds {tensor or list} --  if 'train' shape '(batch. seq_len, vocab_size)'
-                else if 'predict' shape '(batch, token)'
+            hidden {tensor} --  shape '(1, batch, hidden_size)'
         """
         batch_num, _ = contexts.size()
 
@@ -65,26 +62,25 @@ class DynamicMemoryNetworkPlus(nn.Module):
         # concat the memory and questions output to generate hidden vector
         hidden = torch.cat([memory, questions], dim=2)
 
-        # print("dynamic network answer module hidden size: {}".format(hidden.size()))
-        words = torch.zeros(batch_num, 1, dtype=torch.long)
-        if operation == 'train':
-            return self.train(words, hidden, max_length)
-        elif operation == 'predict':
-            return self.predict(words, hidden, max_length)
+        return hidden
 
-    def train(self, words, hidden, max_length):
+    def train(self, contexts, questions, max_length):
         """train operation for the network
 
         Arguments:
-            words {tensor} -- shape '(batch, token)'
-            hidden {tensor} -- shape '(batch, hidden_size)'
-            max_length {int} -- answer sequence len
+            contexts {tensor} -- shape '(batch, token)'
+            questions {tensor} -- shape '(batch, token)'
+            max_length {int} -- default max length of each answer
 
         Returns:
             preds {tensor} -- shape '(batch, seq_len, vocab_size)'
         """
+        batch_num, _ = contexts.size()
+
+        hidden = self.forward(contexts, questions, max_length)
 
         preds = None
+        words = torch.zeros(batch_num, 1, dtype=torch.long)
         for di in range(max_length):
             output, hidden = self.answer_module.forward(
                 hidden, words, self.word_embedding)
@@ -98,26 +94,29 @@ class DynamicMemoryNetworkPlus(nn.Module):
                 preds = torch.cat([preds, output.unsqueeze(1)], dim=1)
         return preds
 
-    def predict(self, words, hidden, max_length):
+    def predict(self, contexts, questions, max_length=MAX_LENGTH):
         """predict operation for the network
 
         Arguments:
-            words {tensor} -- shape '(batch, token)'
-            hidden {tensor} -- shape '(batch, token)'
-            max_length {int} -- default max length for the generated answers
+            contexts {tensor} -- shape '(batch, token)'
+            questions {tensor} -- shape '(batch, token)'
+            max_length {int} -- default max length of each answer
 
         Returns:
             preds {list} -- shape '(batch, each_answer_len)'
         """
-
+        batch_num, _ = contexts.size()
         preds = []
-        batch_num, _ = words.size()
+
+        hidden = self.forward(contexts, questions, max_length)
+
         for bi in range(batch_num):
-            word = words[bi].unsqueeze(0)
+            word = torch.zeros(1, 1, dtype=torch.long)
             answer = []
+            each_hidden = hidden[:, bi, :].unsqueeze(0)
             for di in range(max_length):
-                output, hidden = self.answer_module.forward(
-                    hidden, word, self.word_embedding
+                output, each_hidden = self.answer_module.forward(
+                    each_hidden, word, self.word_embedding
                 )
                 topv, topn = output.topk(1)
                 answer.append(topn.item())
@@ -140,8 +139,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
             float -- loss value
         """
         batch_num, answers_len = answers.size()
-        preds = self.forward(contexts, questions,
-                             operation='train', max_length=answers_len)
+        preds = self.train(contexts, questions, answers_len)
         preds = preds.view(batch_num * answers_len, -1)
         answers = answers.view(batch_num * answers_len)
         loss = self.criterion(preds, answers)
