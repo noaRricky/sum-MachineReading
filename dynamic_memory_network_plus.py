@@ -11,12 +11,23 @@ MAX_LENGTH = 1000
 
 
 class DynamicMemoryNetworkPlus(nn.Module):
+    """ dynamic memory network model
+
+    Arguments:
+        vocab_size {int} -- vocabulary size
+        embeded_size {int} -- the embedding result dimension
+        hidden_size {int} -- the hidden layer feature size
+        num_hop {int} -- how many time memory module update
+    """
+
     def __init__(self, vocab_size, embeded_size, hidden_size, num_hop=3, qa=None):
         super(DynamicMemoryNetworkPlus, self).__init__()
 
+        # init num file
         self.num_hop = num_hop
         self.qa = qa
 
+        # init network
         self.word_embedding = nn.Embedding(
             vocab_size, embeded_size, padding_idx=0, sparse=True)
         init.uniform_(self.word_embedding.weight, a=-(3 ** 0.5), b=(3 ** 0.5))
@@ -28,15 +39,19 @@ class DynamicMemoryNetworkPlus(nn.Module):
             vocab_size, embeded_size, hidden_size)
         self.episodic_memory = EpisodicMemory(hidden_size)
 
-    def forward(self, contexts, questions) -> torch.tensor:
+    def forward(self, contexts, questions, operation, max_length=MAX_LENGTH) -> torch.tensor:
         """read contexts and question to generate answer
-
         Arguments:
             contexts {tensor} -- shape '(batch, token)'
             questions {tensor} -- shape '(batch, token)'
+            operation {str} -- ['train', 'predict'] 
+                when train the network will compute the loss
+                when predict the network will generate answers
+            max_length {int} -- default max length of each answer
 
         Returns:
-            preds {tensor} -- shape '(batch, vocab_size)'
+            preds {tensor or list} --  if 'train' shape '(batch. seq_len, vocab_size)'
+                else if 'predict' shape '(batch, token)'
         """
         batch_num, _ = contexts.size()
 
@@ -46,84 +61,90 @@ class DynamicMemoryNetworkPlus(nn.Module):
         memory = questions
         for hop in range(self.num_hop):
             memory = self.episodic_memory.forward(facts, questions, memory)
-        # o infer to SOS
-        # print("memory size: {}".format(memory.size()))
-        # print("quesions size: {}".format(questions.size()))
+
+        # concat the memory and questions output to generate hidden vector
         hidden = torch.cat([memory, questions], dim=2)
+
         # print("dynamic network answer module hidden size: {}".format(hidden.size()))
-        answers = torch.zeros(batch_num, 1, dtype=torch.long)
-        preds, hidden = self.answer_module.forward(
-            hidden, answers, self.word_embedding)
+        words = torch.zeros(batch_num, 1, dtype=torch.long)
+        if operation == 'train':
+            return self.train(words, hidden, max_length)
+        elif operation == 'predict':
+            return self.predict(words, hidden, max_length)
+
+    def train(self, words, hidden, max_length):
+        """train operation for the network
+
+        Arguments:
+            words {tensor} -- shape '(batch, token)'
+            hidden {tensor} -- shape '(batch, hidden_size)'
+            max_length {int} -- answer sequence len
+
+        Returns:
+            preds {tensor} -- shape '(batch, seq_len, vocab_size)'
+        """
+
+        preds = None
+        for di in range(max_length):
+            output, hidden = self.answer_module.forward(
+                hidden, words, self.word_embedding)
+            # get next words
+            topv, topn = output.topk(1)
+            words = topn.long()
+            # saving output
+            if di == 0:
+                preds = output.unsqueeze(1)
+            else:
+                preds = torch.cat([preds, output.unsqueeze(1)], dim=1)
         return preds
 
-    def encoder(self, context, question):
-        """generate encode [memory, quesion] tensor
+    def predict(self, words, hidden, max_length):
+        """predict operation for the network
 
         Arguments:
-            context {tensor} -- shape '(batch_num=1, token)'
-            question {[tensor]} -- shape '(batch_num=1, token)'
+            words {tensor} -- shape '(batch, token)'
+            hidden {tensor} -- shape '(batch, token)'
+            max_length {int} -- default max length for the generated answers
 
         Returns:
-            tensor -- shape '1, batch_num=1, hidden_size * 2'
+            preds {list} -- shape '(batch, each_answer_len)'
         """
 
-        facts = self.input_module.forward(context, self.word_embedding)
-        question = self.question_module.forward(question, self.word_embedding)
-        memory = question
-        for hop in range(self.num_hop):
-            memory = memory = self.episodic_memory.forward(
-                facts, question, memory)
-        hidden = torch.cat([memory, question], dim=2)
-        return hidden
+        preds = []
+        batch_num, _ = words.size()
+        for bi in range(batch_num):
+            word = words[bi].unsqueeze(0)
+            answer = []
+            for di in range(max_length):
+                output, hidden = self.answer_module.forward(
+                    hidden, word, self.word_embedding
+                )
+                topv, topn = output.topk(1)
+                answer.append(topn.item())
+                if topn.item() == EOS_TOKEN:
+                    break
+                else:
+                    word = topn.long()
+            preds.append(answer)
+        return preds
 
-    def predict(self, context, question, device, max_length=MAX_LENGTH) -> torch.tensor:
-        """generate answer by context and question tensor
+    def loss(self, contexts, questions, answers) -> float:
+        """get lost by answers
 
         Arguments:
-            context {tensor} -- shape '(batch=1, token)'
-            question {tensor} -- shape '(batch=1, token)'
-            device {str} -- device type
+            contexts {tensor} -- shape '(batch, token)'
+            questions {tensor} -- shape '(batch, token)'
+            answers {tensor} -- shape '(batch, token)'
 
         Returns:
-            torch.tensor -- shape '(token, )'
+            float -- loss value
         """
-        hidden = self.encoder(context, question)
-        answer_word = torch.tensor(
-            [[SOS_TOKEN]], dtype=torch.long, device=device)
-        answer = []
-
-        for di in range(MAX_LENGTH):
-            output, hidden = self.answer_module.forward(
-                hidden, answer_word, self.word_embedding)
-            topv, topi = output.data.topk(1)
-            if topi.item() == EOS_TOKEN:
-                break
-            else:
-                answer.append(topi.item())
-
-    def loss(self, context, question, answer, device) -> float:
-        """compute loss by the data
-
-        Arguments:
-            context {tensor} -- shape '(batch=1, token)'
-            questions {tensor} -- shape '(batch=1, token)'
-            answers {tensor} -- shape '(token, )'
-
-        Returns:
-            float -- the terminal loss
-        """
-        answer_len = answer.size()[1]
-        loss = 0
-
-        hidden = self.encoder(context, question)
-        decoder_input = torch.tensor(
-            [[SOS_TOKEN]], dtype=torch.long, device=device)
-        for idx in range(answer_len):
-            output, hidden = self.answer_module.forward(
-                hidden, decoder_input, self.word_embedding)
-            loss += self.criterion(output, answer[idx])
-            _, decoder_input = output.topk(1)
-
+        batch_num, answers_len = answers.size()
+        preds = self.forward(contexts, questions,
+                             operation='train', max_length=answers_len)
+        preds = preds.view(batch_num * answers_len, -1)
+        answers = answers.view(batch_num * answers_len)
+        loss = self.criterion(preds, answers)
         return loss
 
 

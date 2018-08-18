@@ -45,7 +45,8 @@ class AnswerModule(nn.Module):
             answers {torch.tensor} -- size: (batch, 1)
 
         Returns:
-            [type] -- [description]
+            words {tensor} -- shape '(batch, vocab_size)'
+            hidden {tensor} -- shape '(1, batch, 2 * hidden_size)'
         """
         embeded = embedding(answers)
         embeded = embeded.transpose(0, 1)
