@@ -5,6 +5,11 @@ import jieba
 from gensim.corpora import Dictionary
 from gensim.models import Word2Vec
 
+# token id
+SOS_TOKEN = 0
+EOS_TOKEN = 1
+UNKNOW = -1
+
 # setting for data
 ARTICLE_ID = 'article_id'
 ARTICLE_TITLE = 'article_title'
@@ -36,8 +41,8 @@ def jieba_tokenize(text: str) -> list:
     return tokens
 
 
-def build_corpus(file_path: str) -> list:
-    """build data corpus convert each word to id
+def build_str_corpus(file_path: str) -> list:
+    """build data corpus convert each word to token str
 
     Arguments:
         file_path {str} -- data file path
@@ -76,6 +81,53 @@ def build_corpus(file_path: str) -> list:
     return data
 
 
+def build_token_corpus(file_path: str, dictionary: Dictionary) -> list:
+    """build data corpus convert each word to id and append EOS
+
+    Arguments:
+        file_path {str} -- data file path
+        dictionary {Dictionary} -- build up word2id dictionary
+
+    Returns:
+        list -- idx data list
+    """
+
+    with open(file_path, mode='r', encoding='utf-8') as fp:
+        data = json.load(fp)
+
+    data_size = len(data)
+    logging.info("data have {} articles".format(data_size))
+
+    for idx, article in enumerate(data):
+        article_content = article[ARTICLE_CONTENT]
+        article_content = jieba_tokenize(article_content)
+        content_token = dictionary.doc2idx(article_content)
+        content_token.append(EOS_TOKEN)
+        article_title = article[ARTICLE_TITLE]
+        article_title = jieba_tokenize(article_title)
+        title_token = dictionary.doc2idx(article_title)
+        title_token.append(EOS_TOKEN)
+        article[ARTICLE_CONTENT] = content_token
+        article[ARTICLE_TITLE] = title_token
+
+        for questions_obj in article[QUESTIONS]:
+            question = questions_obj[QUESTION]
+            question = jieba_tokenize(question)
+            question_token = dictionary.doc2idx(question)
+            question_token.append(EOS_TOKEN)
+            questions_obj[QUESTION] = question_token
+            answer = questions_obj[ANSWER]
+            answer = jieba_tokenize(answer)
+            answer_token = dictionary.doc2idx(answer)
+            questions_obj[ANSWER] = answer_token
+
+        if idx % 100 == 0:
+            percent = idx / data_size
+            logging.info("finish {}% of data".format(percent * 100))
+
+    return data
+
+
 def build_dictionary(file_path: str) -> Dictionary:
     """build token2id dictionary by the data in file_path
 
@@ -86,6 +138,8 @@ def build_dictionary(file_path: str) -> Dictionary:
     text_generator = text_gen(file_path)
     dictionary = Dictionary([jieba_tokenize(sentence)
                              for sentence in text_generator])
+    for key in dictionary.token2id:
+        dictionary.token2id[key] += 2
     return dictionary
 
 
@@ -166,11 +220,12 @@ def str_q2b(ustring: str) -> str:
 if __name__ == '__main__':
     # dictionary = build_dictionary('./data/question.json')
     # dictionary.save('./data/jieba.dict')
-    # dictionary = Dictionary.load('./data/jieba.dict')
+    dictionary = Dictionary.load('./data/jieba.dict')
     # data = build_corpus('./data/question.json')
-    # with open('./data/data.json', mode='w', encoding='utf-8') as fp:
-    #     json.dump(data, fp, ensure_ascii=False)
-    file_path = './data/data.json'
-    save_path = './data/word2vec.kv'
-    model = build_word2vec(file_path, EMBEDDING_SIZE, WINDOW_SIZE)
-    model.wv.save(save_path)
+    data = build_token_corpus('./data/question.json', dictionary)
+    with open('./data/data_idx.json', mode='w', encoding='utf-8') as fp:
+        json.dump(data, fp, ensure_ascii=False)
+    # file_path = './data/data.json'
+    # save_path = './data/word2vec.kv'
+    # model = build_word2vec(file_path, EMBEDDING_SIZE, WINDOW_SIZE)
+    # model.wv.save(save_path)

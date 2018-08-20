@@ -6,11 +6,12 @@ from memory import AttentionGRU, AttentionGRUCell, EpisodicMemory
 from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
 
 # parameters for testing
-VOCAL_SIZE = 100
+VOCAB_SIZE = 100
 EMBEDED_SIZE = 30
 HIDDEN_SIZE = 30
 CONTEXTS_LEN = 10
 QUESTIONS_LEN = 5
+ANSWERS_LEN = 3
 BATCH_SIZE = 2
 
 
@@ -52,7 +53,7 @@ def text_episodic_memory():
 def test_question_module():
 
     question_module = QuestionModule(EMBEDED_SIZE, HIDDEN_SIZE)
-    embedding = nn.Embedding(VOCAL_SIZE, EMBEDED_SIZE)
+    embedding = nn.Embedding(VOCAB_SIZE, EMBEDED_SIZE)
     questions = torch.tensor([[1, 2, 3, 4], [2, 3, 1, 2]], dtype=torch.long)
     print('hidden size: {}'.format(HIDDEN_SIZE))
     print('input question size: {}'.format(questions.size()))
@@ -62,7 +63,7 @@ def test_question_module():
 
 def test_input_module():
     input_module = InputModule(EMBEDED_SIZE, HIDDEN_SIZE)
-    embedding = nn.Embedding(VOCAL_SIZE, EMBEDED_SIZE)
+    embedding = nn.Embedding(VOCAB_SIZE, EMBEDED_SIZE)
     contexts = torch.tensor([[1, 2, 3, 4], [2, 3, 1, 2]], dtype=torch.long)
     print("hidden_size: {}".format(HIDDEN_SIZE))
     print("context size: {}".format(contexts.size()))
@@ -71,35 +72,60 @@ def test_input_module():
 
 
 def test_answer_module():
-    answer_module = AnswerModule(VOCAL_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
-    word_embedding = nn.Embedding(VOCAL_SIZE, EMBEDED_SIZE)
+    answer_module = AnswerModule(VOCAB_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
+    word_embedding = nn.Embedding(VOCAB_SIZE, EMBEDED_SIZE)
     words = torch.zeros(2, 1, dtype=torch.long)
     print("words size: {}".format(words.size()))
     memory = torch.randn(1, 2, HIDDEN_SIZE)
     questions = torch.randn(1, 2, HIDDEN_SIZE)
     hidden = torch.cat([memory, questions], dim=2)
-    TOTAL_TURN = 5
-    for turn in range(TOTAL_TURN):
-        print("insize for")
-        output, hidden = answer_module.forward(hidden, words, word_embedding)
-        _, words = output.topk(1)
-        words = words.long()
+    words, hidden = answer_module.forward(hidden, words, word_embedding)
+    # TOTAL_TURN = 5
+    # for turn in range(TOTAL_TURN):
+    #     # print("insize for")
+    #     output, hidden = answer_module.forward(hidden, words, word_embedding)
+    #     _, words = output.topk(1)
+    #     words = words.long()
     print("words size: {}".format(words.size()))
 
 
-def test_dmn():
-    model = DynamicMemoryNetworkPlus(VOCAL_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
-    contexts = torch.randint(VOCAL_SIZE, size=(
+def test_dmnp():
+    model = DynamicMemoryNetworkPlus(VOCAB_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
+    contexts = torch.randint(VOCAB_SIZE, size=(
         BATCH_SIZE, CONTEXTS_LEN), dtype=torch.long)
-    questions = torch.randint(VOCAL_SIZE, size=(
+    questions = torch.randint(VOCAB_SIZE, size=(
         BATCH_SIZE, QUESTIONS_LEN), dtype=torch.long)
-    preds = model.forward(contexts, questions)
-    print("preds size: {}".format(preds))
+    preds = model.forward(contexts, questions, 3)
+    print("preds size: {}".format(preds.size()))
+
+
+def text_dmnp_loss():
+    model = DynamicMemoryNetworkPlus(VOCAB_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
+    contexts = torch.randint(VOCAB_SIZE, size=(
+        BATCH_SIZE, CONTEXTS_LEN), dtype=torch.long)
+    questions = torch.randint(VOCAB_SIZE, size=(
+        BATCH_SIZE, QUESTIONS_LEN), dtype=torch.long)
+    answers = torch.randint(VOCAB_SIZE, size=(
+        BATCH_SIZE, ANSWERS_LEN), dtype=torch.long)
+    loss = model.loss(contexts, questions, answers)
+    print("loss : {}".format(loss))
+
+
+def test_dmnp_predict():
+    model = DynamicMemoryNetworkPlus(VOCAB_SIZE, EMBEDED_SIZE, HIDDEN_SIZE)
+    contexts = torch.randint(VOCAB_SIZE, size=(
+        BATCH_SIZE, CONTEXTS_LEN), dtype=torch.long)
+    questions = torch.randint(VOCAB_SIZE, size=(
+        BATCH_SIZE, QUESTIONS_LEN), dtype=torch.long)
+    preds = model.predict(contexts, questions)
+    print("preds:\n{}".format(preds))
 
 
 if __name__ == '__main__':
     # input_model = InputModule(100, 30)
     # test_input_module()
     # test_answer_module()
-    test_dmn()
+    # test_dmnp()
     # text_episodic_memory()
+    # text_dmnp_loss()
+    test_dmnp_predict()
