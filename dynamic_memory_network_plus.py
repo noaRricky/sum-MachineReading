@@ -5,9 +5,9 @@ import torch.nn.init as init
 from module import InputModule, QuestionModule, AnswerModule
 from memory import EpisodicMemory
 
+# global setting
 SOS_TOKEN = 0
 EOS_TOKEN = 1
-MAX_LENGTH = 20
 
 
 class DynamicMemoryNetworkPlus(nn.Module):
@@ -30,7 +30,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
 
         # init network
         self.word_embedding = nn.Embedding(
-            vocab_size, embeded_size, padding_idx=0, sparse=True)
+            vocab_size, embeded_size)
         init.uniform_(self.word_embedding.weight, a=-(3 ** 0.5), b=(3 ** 0.5))
         self.criterion = nn.CrossEntropyLoss()
 
@@ -40,7 +40,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
             vocab_size, embeded_size, hidden_size)
         self.episodic_memory = EpisodicMemory(hidden_size)
 
-    def forward(self, contexts, questions, max_length=MAX_LENGTH) -> torch.tensor:
+    def forward(self, contexts, questions, max_length=1000) -> torch.tensor:
         """read contexts and question to generate answer
         Arguments:
             contexts {tensor} -- shape '(batch, token)'
@@ -94,7 +94,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
                 preds = torch.cat([preds, output.unsqueeze(1)], dim=1)
         return preds
 
-    def predict(self, contexts, questions, max_length=MAX_LENGTH):
+    def predict(self, contexts, questions, max_length=1000):
         """predict operation for the network
 
         Arguments:
@@ -144,11 +144,6 @@ class DynamicMemoryNetworkPlus(nn.Module):
         answers = answers.view(batch_num * answers_len)
         loss = self.criterion(preds, answers)
         return loss
-
-
-def train_network(data_path, dict_path):
-    # TODO: train dynamic memory networkk
-    print("hello world")
 
 
 if __name__ == '__main__':
