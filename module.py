@@ -2,14 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
-
-# TODO: implement chono init method
+from minit import uniform_init_rnn
 
 
 class QuestionModule(nn.Module):
     def __init__(self, embeded_size, hidden_size):
         super(QuestionModule, self).__init__()
         self.gru = nn.GRU(embeded_size, hidden_size)
+        uniform_init_rnn(self.gru)
+        for name, param in self.gru.named_parameters():
+            print("name: {}, param: {}".format(name, param))
 
     def forward(self, questions, word_embedding) -> torch.tensor:
         """encoding the question tensor
@@ -37,6 +39,8 @@ class AnswerModule(nn.Module):
         self.z = nn.Linear(2 * hidden_size, vocab_size)
         init.xavier_normal_(self.z.weight)
 
+        uniform_init_rnn(self.gru)
+
     def forward(self, hidden, answers, embedding):
         """generate answer by memory and questions
 
@@ -63,6 +67,8 @@ class InputModule(nn.Module):
         self.hidden_size = hidden_size
         self.gru = nn.GRU(embeded_size, hidden_size)
 
+        uniform_init_rnn(self.gru)
+
     def forward(self, contexts, embedding: nn.Embedding) -> torch.tensor:
         """forward input contexts
 
@@ -78,3 +84,7 @@ class InputModule(nn.Module):
         contexts = contexts.transpose(0, 1)
         output, _ = self.gru(contexts)
         return output
+
+
+if __name__ == '__main__':
+    question_module = QuestionModule(124, 124)

@@ -119,6 +119,7 @@ def build_token_corpus(file_path: str, dictionary: Dictionary) -> list:
             answer = questions_obj[ANSWER]
             answer = jieba_tokenize(answer)
             answer_token = dictionary.doc2idx(answer)
+            answer_token.append(EOS_TOKEN)
             questions_obj[ANSWER] = answer_token
 
         if idx % 100 == 0:

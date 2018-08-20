@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
+from minit import uniform_init_rnn
+
 
 class AttentionGRUCell(nn.Module):
     """a attention gru cell
@@ -19,13 +21,14 @@ class AttentionGRUCell(nn.Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.Wr = nn.Linear(input_size, hidden_size, bias=False)
-        init.xavier_normal_(self.Wr.weight)
         self.Ur = nn.Linear(hidden_size, hidden_size, bias=True)
-        init.xavier_normal_(self.Ur.weight)
         self.W = nn.Linear(input_size, hidden_size, bias=True)
-        init.xavier_normal_(self.W.weight)
         self.U = nn.Linear(hidden_size, hidden_size, bias=False)
-        init.xavier_normal_(self.U.weight)
+
+        uniform_init_rnn(self.Wr)
+        uniform_init_rnn(self.W)
+        uniform_init_rnn(self.U)
+        uniform_init_rnn(self.Ur)
 
     def forward(self, fact, c, g) -> torch.tensor:
         """forward step of the cell
@@ -82,6 +85,9 @@ class EpisodicMemory(nn.Module):
         init.xavier_normal_(self.z1.weight)
         init.xavier_normal_(self.z2.weight)
         init.xavier_normal_(self.next_mem.weight)
+        init.zeros_(self.z1.bias)
+        init.zeros_(self.z2.bias)
+        init.zeros_(self.next_mem.bias)
         # TODO: modify init way for Relu activate function
 
     def make_interaction(self, facts, questions, prev_memory) -> torch.tensor:
@@ -104,14 +110,13 @@ class EpisodicMemory(nn.Module):
                        torch.abs(facts - questions),
                        torch.abs(facts - prev_memory)], dim=2)
 
-        # print("concat size: {}".format(z.size()))
-        z = z.view(-1, 4 * hidden_size)
-        # print("convert size: {}".format(z.size()))
+        z = z.transpose(0, 1)
+        # NOTICE: the after transpose shape of z is (batch, seq_len, hidden_size * 4)
+        z = z.contiguous().view(-1, 4 * hidden_size)
 
         G = torch.tanh(self.z1(z))
         G = self.z2(G)
         G = G.view(batch_num, -1)
-
         G = torch.softmax(G, dim=1)
 
         return G
