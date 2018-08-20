@@ -46,12 +46,12 @@ def get_item(data):
             yield content, question, answer
 
 
-def get_question_len(data):
-    question_len = 0
+def print_data(data):
     for article in data:
         for qobj in article[QUESTIONS]:
-            question_len += 1
-    return question_len
+            if len(qobj[QUESTION]) == 1 or len(qobj[ANSWER]) == 1:
+                print("question:\n{}".format(qobj[QUESTION]))
+                print("answer:\n{}".format(qobj[ANSWER]))
 
 
 def train_network(data_path, dict_path):
@@ -88,5 +88,6 @@ def train_network(data_path, dict_path):
 
 
 if __name__ == '__main__':
-    model = train_network(DATA_PATH, DIC_PATH)
-    torch.save(model, './data/dmnp.mdl')
+    with open(DATA_PATH, mode='r', encoding='utf-8') as fp:
+        data = json.load(fp)
+        print_data(data)
