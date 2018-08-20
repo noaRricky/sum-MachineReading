@@ -31,8 +31,6 @@ DATA_PATH = './data/data_idx.json'
 DIC_PATH = './data/jieba.dict'
 
 
-
-
 def get_item(data):
     for article in data:
         if len(article[ARTICLE_CONTENT]) == 0:
@@ -40,6 +38,8 @@ def get_item(data):
         content = torch.tensor([article[ARTICLE_CONTENT]], dtype=torch.long)
         for qobj in article[QUESTIONS]:
             if len(qobj[QUESTION]) == 0 or len(qobj[ANSWER]) == 0:
+                print("data contain empty question in {}:{}".format(
+                    article[ARTICLE_ID], qobj[QUESTIONS_ID]))
                 pass
             question = torch.tensor([qobj[QUESTION]], dtype=torch.long)
             answer = torch.tensor([qobj[ANSWER]], dtype=torch.long)
