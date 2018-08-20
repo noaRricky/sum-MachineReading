@@ -66,16 +66,17 @@ def train_network(data_path, dict_path):
             # zero the parameter grad
             optimizer.zero_grad()
 
-            # forward + backword + optimizer
+            # forward \
             loss = model.loss(content, question, answer)
+
+            # backword and optimize
             loss.backward()
             optimizer.step()
 
-            if idx % 2000 == 1999:  # print every 2000 mini-batch
-                print("{} epoch, {} time, loss: {}".format(
+            # print loss
+            if idx % 10 == 0:  # print every 10 mini-batch
+                logging.info("epoch {}, item {}, loss {}".format(
                     iter_idx, idx, loss.item()))
-            break
-        break
 
     return model
 
