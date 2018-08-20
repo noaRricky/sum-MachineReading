@@ -12,10 +12,10 @@ logging.basicConfig(
 
 # training setting
 EMBEDDED_SIZE = 124
-HIDDEN_SIZE = 124
-NUM_ITER = 4
+HIDDEN_SIZE = 256
+NUM_EPOCH = 100
 MAX_LENGTH = 1000
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.003
 
 # setting for data
 ARTICLE_ID = 'article_id'
@@ -33,21 +33,23 @@ DIC_PATH = './data/jieba.dict'
 
 def get_item(data):
     for article in data:
-        if len(article[ARTICLE_CONTENT]) == 0:
-            pass
         content = torch.tensor([article[ARTICLE_CONTENT]], dtype=torch.long)
         for qobj in article[QUESTIONS]:
-            if len(qobj[QUESTION]) == 0 or len(qobj[ANSWER]) == 0:
-                print("data contain empty question in {}:{}".format(
-                    article[ARTICLE_ID], qobj[QUESTIONS_ID]))
-                pass
             question = torch.tensor([qobj[QUESTION]], dtype=torch.long)
             answer = torch.tensor([qobj[ANSWER]], dtype=torch.long)
             yield content, question, answer
 
 
 def print_data(data):
+    """check data length
+
+    Arguments:
+        data {dict} -- data
+    """
+
     for article in data:
+        if len(article[ARTICLE_CONTENT]) == 1:
+            print("article:\n{}".format(article[ARTICLE_CONTENT]))
         for qobj in article[QUESTIONS]:
             if len(qobj[QUESTION]) == 1 or len(qobj[ANSWER]) == 1:
                 print("question:\n{}".format(qobj[QUESTION]))
@@ -66,7 +68,7 @@ def train_network(data_path, dict_path):
 
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-    for iter_idx in range(NUM_ITER):
+    for iter_idx in range(NUM_EPOCH):
         item_gen = get_item(data)
         for idx, (content, question, answer) in enumerate(item_gen):
             # zero the parameter grad
@@ -88,6 +90,5 @@ def train_network(data_path, dict_path):
 
 
 if __name__ == '__main__':
-    with open(DATA_PATH, mode='r', encoding='utf-8') as fp:
-        data = json.load(fp)
-        print_data(data)
+    model = train_network(DATA_PATH, DIC_PATH)
+    torch.save(model, './data/dmnp.mdl')

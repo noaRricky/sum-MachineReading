@@ -8,7 +8,7 @@ from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
 # parameters for testing
 VOCAB_SIZE = 100
 EMBEDED_SIZE = 30
-HIDDEN_SIZE = 30
+HIDDEN_SIZE = 4
 CONTEXTS_LEN = 10
 QUESTIONS_LEN = 5
 ANSWERS_LEN = 3
@@ -43,11 +43,11 @@ def text_episodic_memory():
     facts = torch.randn(sentence_len, batch_size, HIDDEN_SIZE)
     questions = torch.randn(1, batch_size, HIDDEN_SIZE)
     memory = torch.randn(1, batch_size, HIDDEN_SIZE)
-    g = episodic_memory.make_interaction(facts, questions, memory)
-    print("g size: {}".format(g.size()))
-    print("g value:\n {}".format(g))
-    memory = episodic_memory.forward(facts, questions, memory)
-    print("memory size: {}".format(memory.size()))
+    episodic_memory.make_interaction(facts, questions, memory)
+    # print("g size: {}".format(g.size()))
+    # print("g value:\n {}".format(g))
+    # memory = episodic_memory.forward(facts, questions, memory)
+    # print("memory size: {}".format(memory.size()))
 
 
 def test_question_module():
@@ -128,4 +128,5 @@ if __name__ == '__main__':
     # test_dmnp()
     # text_episodic_memory()
     # text_dmnp_loss()
-    test_dmnp_predict()
+    # test_dmnp_predict()
+    text_episodic_memory()
