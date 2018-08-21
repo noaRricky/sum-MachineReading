@@ -2,28 +2,43 @@ import logging
 
 import torch
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from gensim.corpora import Dictionary
 
 from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
+from loader import QADataSet, pad_collate
+from constants import DATA_PATH, DIC_PATH, EXTRA_SIZE
 
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-# setting for file
-DATA_PATH = './data/data_idx.json'
-
 
 def train_network():
+    # get vocab size
+    dictionary: Dictionary = Dictionary.load(DIC_PATH)
+    vocab_size = len(dictionary.token2id) + EXTRA_SIZE
+    del dictionary
 
-    vocab_size = len(dictionary.token2id)
-    # train the network
-    model = DynamicMemoryNetworkPlus(vocab_size, EMBEDDED_SIZE, HIDDEN_SIZE)
+    # hyperparameter for network
+    embeding_size = 256
+    hidden_size = 256
+    learning_rate = 0.003
+    num_epoch = 256
 
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    # initlise the network
+    logging.info("init the dynamic memory model")
+    model = DynamicMemoryNetworkPlus(vocab_size, embeding_size, hidden_size)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     loss_total = 0
 
-    for iter_idx in range(NUM_EPOCH):
-        item_gen = get_item(data)
-        for idx, (content, question, answer) in enumerate(item_gen):
+    # load dataset
+    logging.info("loading train dataset")
+    dataset = QADataSet(DATA_PATH)
+    dataloader = DataLoader(dataset, batch_size=1,
+                            shuffle=True, collate_fn=pad_collate)
+
+    for iter_idx in range(num_epoch):
+        for idx, (content, question, answer) in enumerate(dataloader):
             # zero the parameter grad
             optimizer.zero_grad()
 
@@ -36,9 +51,9 @@ def train_network():
             loss_total += loss.item()
 
             # print loss
-            if idx % 10 == 9:  # print every 10 mini-batch
+            if idx % 100 == 99:  # print every 10 mini-batch
                 logging.info("epoch {}, item {}, loss {}".format(
-                    iter_idx, idx, loss_total / 10))
+                    iter_idx, idx, loss_total / 100))
                 loss_total = 0
 
     return model
