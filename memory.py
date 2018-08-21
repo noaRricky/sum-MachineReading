@@ -109,7 +109,7 @@ class EpisodicMemory(nn.Module):
 
         z = z.transpose(0, 1)
         # NOTICE: the after transpose shape of z is (batch, seq_len, hidden_size * 4)
-        z = z.contiguous().view(-1, 4 * hidden_size)
+        z = z.reshape(-1, 4 * hidden_size)
 
         G = torch.tanh(self.z1(z))
         G = self.z2(G)
