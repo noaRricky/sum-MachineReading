@@ -1,78 +1,58 @@
-import json
 import logging
 
-from gensim.corpora import Dictionary
 import torch
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from gensim.corpora import Dictionary
 
 from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
+from loader import QADataSet, pad_collate
+from constants import DATA_PATH, DIC_PATH, EXTRA_SIZE
 
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-# training setting
-EMBEDDED_SIZE = 124
-HIDDEN_SIZE = 256
-NUM_EPOCH = 100
-MAX_LENGTH = 1000
-LEARNING_RATE = 0.003
 
-# setting for data
-ARTICLE_ID = 'article_id'
-ARTICLE_TITLE = 'article_title'
-ARTICLE_CONTENT = 'article_content'
-QUESTIONS = 'questions'
-QUESTION = 'question'
-QUESTIONS_ID = 'questions_id'
-ANSWER = 'answer'
+def train_network():
+    # get vocab size
+    dictionary: Dictionary = Dictionary.load(DIC_PATH)
+    vocab_size = len(dictionary.token2id) + EXTRA_SIZE
+    del dictionary
 
-# setting for file
-DATA_PATH = './data/data_idx.json'
-DIC_PATH = './data/jieba.dict'
+    # select device to train
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    logging.info("use {} to train network".format(device))
 
+    # hyperparameter for network
+    embeding_size = 256
+    hidden_size = 256
+    learning_rate = 0.003
+    num_epoch = 256
 
-def get_item(data):
-    for article in data:
-        content = torch.tensor([article[ARTICLE_CONTENT]], dtype=torch.long)
-        for qobj in article[QUESTIONS]:
-            question = torch.tensor([qobj[QUESTION]], dtype=torch.long)
-            answer = torch.tensor([qobj[ANSWER]], dtype=torch.long)
-            yield content, question, answer
+    # initlise the network
+    logging.info("init the dynamic memory model")
+    model = DynamicMemoryNetworkPlus(vocab_size, embeding_size, hidden_size)
+    model.to(device)
 
+    # seting the optimizer
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    loss_total = 0
 
-def print_data(data):
-    """check data length
+    # load dataset
+    logging.info("loading train dataset")
+    dataset = QADataSet(DATA_PATH)
+    dataloader = DataLoader(dataset, batch_size=1,
+                            shuffle=True, collate_fn=pad_collate)
 
-    Arguments:
-        data {dict} -- data
-    """
-
-    for article in data:
-        if len(article[ARTICLE_CONTENT]) == 1:
-            print("article:\n{}".format(article[ARTICLE_CONTENT]))
-        for qobj in article[QUESTIONS]:
-            if len(qobj[QUESTION]) == 1 or len(qobj[ANSWER]) == 1:
-                print("question:\n{}".format(qobj[QUESTION]))
-                print("answer:\n{}".format(qobj[ANSWER]))
-
-
-def train_network(data_path, dict_path):
-    # load dictionary and data
-    dictionary: Dictionary = Dictionary.load(dict_path)
-    with open(data_path, mode='r', encoding='utf-8') as fp:
-        data = json.load(fp)
-
-    vocab_size = len(dictionary.token2id)
-    # train the network
-    model = DynamicMemoryNetworkPlus(vocab_size, EMBEDDED_SIZE, HIDDEN_SIZE)
-
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-
-    for iter_idx in range(NUM_EPOCH):
-        item_gen = get_item(data)
-        for idx, (content, question, answer) in enumerate(item_gen):
+    for iter_idx in range(num_epoch):
+        for idx, (content, question, answer) in enumerate(dataloader):
             # zero the parameter grad
             optimizer.zero_grad()
+
+            # feed to trainig device
+            content = content.to(device)
+            question = question.to(device)
+            answer = answer.to(device)
 
             # forward \
             loss = model.loss(content, question, answer)
@@ -80,15 +60,17 @@ def train_network(data_path, dict_path):
             # backword and optimize
             loss.backward()
             optimizer.step()
+            loss_total += loss.item()
 
             # print loss
-            if idx % 10 == 0:  # print every 10 mini-batch
+            if idx % 10 == 9:  # print every 10 mini-batch
                 logging.info("epoch {}, item {}, loss {}".format(
-                    iter_idx, idx, loss.item()))
+                    iter_idx, idx, loss_total / 10))
+                loss_total = 0
 
     return model
 
 
 if __name__ == '__main__':
-    model = train_network(DATA_PATH, DIC_PATH)
+    model = train_network()
     torch.save(model, './data/dmnp.mdl')

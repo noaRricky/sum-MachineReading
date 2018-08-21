@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.init as init
 
 from minit import uniform_init_rnn
 
@@ -10,8 +9,6 @@ class QuestionModule(nn.Module):
         super(QuestionModule, self).__init__()
         self.gru = nn.GRU(embeded_size, hidden_size)
         uniform_init_rnn(self.gru)
-        for name, param in self.gru.named_parameters():
-            print("name: {}, param: {}".format(name, param))
 
     def forward(self, questions, word_embedding) -> torch.tensor:
         """encoding the question tensor
@@ -37,9 +34,9 @@ class AnswerModule(nn.Module):
         super(AnswerModule, self).__init__()
         self.gru = nn.GRU(embeded_size, hidden_size * 2)
         self.z = nn.Linear(2 * hidden_size, vocab_size)
-        init.xavier_normal_(self.z.weight)
 
         uniform_init_rnn(self.gru)
+        uniform_init_rnn(self.z)
 
     def forward(self, hidden, answers, embedding):
         """generate answer by memory and questions
