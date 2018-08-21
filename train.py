@@ -67,6 +67,7 @@ def train_network(data_path, dict_path):
     model = DynamicMemoryNetworkPlus(vocab_size, EMBEDDED_SIZE, HIDDEN_SIZE)
 
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    loss_total = 0
 
     for iter_idx in range(NUM_EPOCH):
         item_gen = get_item(data)
@@ -80,11 +81,13 @@ def train_network(data_path, dict_path):
             # backword and optimize
             loss.backward()
             optimizer.step()
+            loss_total += loss.item()
 
             # print loss
-            if idx % 10 == 0:  # print every 10 mini-batch
+            if idx % 10 == 9:  # print every 10 mini-batch
                 logging.info("epoch {}, item {}, loss {}".format(
-                    iter_idx, idx, loss.item()))
+                    iter_idx, idx, loss_total / 10))
+                loss_total = 0
 
     return model
 

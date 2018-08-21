@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.init as init
 
 from minit import uniform_init_rnn
 
@@ -82,12 +81,10 @@ class EpisodicMemory(nn.Module):
         self.z1 = nn.Linear(4 * hidden_size, hidden_size)
         self.z2 = nn.Linear(hidden_size, 1)
         self.next_mem = nn.Linear(3 * hidden_size, hidden_size)
-        init.xavier_normal_(self.z1.weight)
-        init.xavier_normal_(self.z2.weight)
-        init.xavier_normal_(self.next_mem.weight)
-        init.zeros_(self.z1.bias)
-        init.zeros_(self.z2.bias)
-        init.zeros_(self.next_mem.bias)
+
+        uniform_init_rnn(self.z1)
+        uniform_init_rnn(self.z2)
+        uniform_init_rnn(self.next_mem)
         # TODO: modify init way for Relu activate function
 
     def make_interaction(self, facts, questions, prev_memory) -> torch.tensor:
