@@ -19,6 +19,10 @@ def train_network():
     vocab_size = len(dictionary.token2id) + EXTRA_SIZE
     del dictionary
 
+    # select device to train
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    logging.info("use {} to train network".format(device))
+
     # hyperparameter for network
     embeding_size = 256
     hidden_size = 256
@@ -28,6 +32,9 @@ def train_network():
     # initlise the network
     logging.info("init the dynamic memory model")
     model = DynamicMemoryNetworkPlus(vocab_size, embeding_size, hidden_size)
+    model.to(device)
+
+    # seting the optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     loss_total = 0
 
@@ -42,6 +49,11 @@ def train_network():
             # zero the parameter grad
             optimizer.zero_grad()
 
+            # feed to trainig device
+            content = content.to(device)
+            question = question.to(device)
+            answer = answer.to(device)
+
             # forward \
             loss = model.loss(content, question, answer)
 
@@ -51,9 +63,9 @@ def train_network():
             loss_total += loss.item()
 
             # print loss
-            if idx % 100 == 99:  # print every 10 mini-batch
+            if idx % 10 == 9:  # print every 10 mini-batch
                 logging.info("epoch {}, item {}, loss {}".format(
-                    iter_idx, idx, loss_total / 100))
+                    iter_idx, idx, loss_total / 10))
                 loss_total = 0
 
     return model
