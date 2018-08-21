@@ -5,19 +5,7 @@ import jieba
 from gensim.corpora import Dictionary
 from gensim.models import Word2Vec
 
-# token id
-SOS_TOKEN = 0
-EOS_TOKEN = 1
-UNKNOW = -1
-
-# setting for data
-ARTICLE_ID = 'article_id'
-ARTICLE_TITLE = 'article_title'
-ARTICLE_CONTENT = 'article_content'
-QUESTIONS = 'questions'
-QUESTION = 'question'
-QUESTIONS_ID = 'questions_id'
-ANSWER = 'answer'
+from constants import ARTICLE_CONTENT, ARTICLE_TITLE, QUESTION, QUESTIONS, ANSWER, UNK_TOKEN
 
 # setting for embedding
 WINDOW_SIZE = 6
@@ -102,11 +90,9 @@ def build_token_corpus(file_path: str, dictionary: Dictionary) -> list:
         article_content = article[ARTICLE_CONTENT]
         article_content = jieba_tokenize(article_content)
         content_token = dictionary.doc2idx(article_content)
-        content_token.append(EOS_TOKEN)
         article_title = article[ARTICLE_TITLE]
         article_title = jieba_tokenize(article_title)
         title_token = dictionary.doc2idx(article_title)
-        title_token.append(EOS_TOKEN)
         article[ARTICLE_CONTENT] = content_token
         article[ARTICLE_TITLE] = title_token
 
@@ -114,12 +100,10 @@ def build_token_corpus(file_path: str, dictionary: Dictionary) -> list:
             question = questions_obj[QUESTION]
             question = jieba_tokenize(question)
             question_token = dictionary.doc2idx(question)
-            question_token.append(EOS_TOKEN)
             questions_obj[QUESTION] = question_token
             answer = questions_obj[ANSWER]
             answer = jieba_tokenize(answer)
             answer_token = dictionary.doc2idx(answer)
-            answer_token.append(EOS_TOKEN)
             questions_obj[ANSWER] = answer_token
 
         if idx % 100 == 0:
@@ -140,7 +124,7 @@ def build_dictionary(file_path: str) -> Dictionary:
     dictionary = Dictionary([jieba_tokenize(sentence)
                              for sentence in text_generator])
     for key in dictionary.token2id:
-        dictionary.token2id[key] += 2
+        dictionary.token2id[key] += 4
     return dictionary
 
 

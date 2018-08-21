@@ -1,7 +1,5 @@
-import json
 import logging
 
-from gensim.corpora import Dictionary
 import torch
 import torch.optim as optim
 
@@ -10,57 +8,11 @@ from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-# training setting
-EMBEDDED_SIZE = 124
-HIDDEN_SIZE = 256
-NUM_EPOCH = 100
-MAX_LENGTH = 1000
-LEARNING_RATE = 0.003
-
-# setting for data
-ARTICLE_ID = 'article_id'
-ARTICLE_TITLE = 'article_title'
-ARTICLE_CONTENT = 'article_content'
-QUESTIONS = 'questions'
-QUESTION = 'question'
-QUESTIONS_ID = 'questions_id'
-ANSWER = 'answer'
-
 # setting for file
 DATA_PATH = './data/data_idx.json'
-DIC_PATH = './data/jieba.dict'
 
 
-def get_item(data):
-    for article in data:
-        content = torch.tensor([article[ARTICLE_CONTENT]], dtype=torch.long)
-        for qobj in article[QUESTIONS]:
-            question = torch.tensor([qobj[QUESTION]], dtype=torch.long)
-            answer = torch.tensor([qobj[ANSWER]], dtype=torch.long)
-            yield content, question, answer
-
-
-def print_data(data):
-    """check data length
-
-    Arguments:
-        data {dict} -- data
-    """
-
-    for article in data:
-        if len(article[ARTICLE_CONTENT]) == 1:
-            print("article:\n{}".format(article[ARTICLE_CONTENT]))
-        for qobj in article[QUESTIONS]:
-            if len(qobj[QUESTION]) == 1 or len(qobj[ANSWER]) == 1:
-                print("question:\n{}".format(qobj[QUESTION]))
-                print("answer:\n{}".format(qobj[ANSWER]))
-
-
-def train_network(data_path, dict_path):
-    # load dictionary and data
-    dictionary: Dictionary = Dictionary.load(dict_path)
-    with open(data_path, mode='r', encoding='utf-8') as fp:
-        data = json.load(fp)
+def train_network():
 
     vocab_size = len(dictionary.token2id)
     # train the network
@@ -93,5 +45,5 @@ def train_network(data_path, dict_path):
 
 
 if __name__ == '__main__':
-    model = train_network(DATA_PATH, DIC_PATH)
+    model = train_network()
     torch.save(model, './data/dmnp.mdl')

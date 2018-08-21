@@ -22,3 +22,5 @@ PAD_WORD = '<pad>'
 UNK_WORD = '<unk>'
 SOS_WORD = '<sos>'
 EOS_WORD = '<eos>'
+
+EXTRA_SIZE = 4
