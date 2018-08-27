@@ -40,9 +40,11 @@ class AttentionGRUCell(nn.Module):
         Returns:
             torch.tensor -- [description]
         """
+        # r shape 'batch, hidden_size'
         r = torch.sigmoid(self.Wr(fact) + self.Ur(c))
+        # h_tilda shape 'batch, hidden_size'
         h_tilda = torch.tanh(self.W(fact) + r * self.U(c))
-        g = g.unsqueeze(1).expand_as(h_tilda)
+        g = g.unsqueeze(1)
         c = g * h_tilda + (1 - g) * c
         return c
 
@@ -58,16 +60,16 @@ class AttentionGRU(nn.Module):
         """forwar step
 
         Arguments:
-            facts {tensor} -- shape '(seq_len, batch, hidden_size)'
+            facts {tensor} -- shape '(batch, seq_len, hidden_size)'
             G {tensor} -- shape '(batch, sentence)'
 
         Returns:
             c {tensor} -- shape '(batch, hidden_size)'
         """
-        seq_num, batch_num, hidden_size = facts.size()
+        batch_num, seq_num, hidden_size = facts.size()
         c = torch.zeros(batch_num, hidden_size)
         for sid in range(seq_num):
-            fact = facts[sid]
+            fact = facts[:, sid, :]
             g = G[:, sid]
             c = self.AGRUCell.forward(fact, c, g)
         return c
@@ -91,25 +93,22 @@ class EpisodicMemory(nn.Module):
         """make interaction from different memory
 
         Arguments:
-            facts {tenor} -- shape '(seq_len, batch, hidden_size)'
-            questions {tensor} -- shape '(1, batch, hidden_size)'
-            prev_memeory {tensor} -- shape '(1, batch, hidden_size)'
+            facts {tenor} -- shape '(batch, seq_len hidden_size)'
+            questions {tensor} -- shape '(batch, 1, hidden_size)'
+            prev_memeory {tensor} -- shape '(batch, 1, hidden_size)'
 
         Returns:
             G {tensor} -- shape '(batch, seq_len)'
         """
-        seq_len, batch_num, hidden_size = facts.size()
-        questions = questions.expand_as(facts)
-        prev_memory = prev_memory.expand_as(facts)
+        batch_num, seq_len, hidden_size = facts.size()
 
+        # z shape 'batch, seq, 4 * hidden_size'
         z = torch.cat([facts * questions,
                        facts * prev_memory,
                        torch.abs(facts - questions),
                        torch.abs(facts - prev_memory)], dim=2)
 
-        z = z.transpose(0, 1)
-        # NOTICE: the after transpose shape of z is (batch, seq_len, hidden_size * 4)
-        z = z.reshape(-1, 4 * hidden_size)
+        z = z.view(-1, 4 * hidden_size)
 
         G = torch.tanh(self.z1(z))
         G = self.z2(G)
@@ -122,19 +121,19 @@ class EpisodicMemory(nn.Module):
         """[summary]
 
         Arguments:
-            facts {tensor} -- shape '(seq_len, batch, hidden_size)'
-            questions {tensor} -- shape '(1, batch, hidden_size)'
-            prev_memory {tensor} -- shape '(1, batch, hidden_size)'
+            facts {tensor} -- shape '(batch, seq, hidden_size)'
+            questions {tensor} -- shape '(batch, 1, hidden_size)'
+            prev_memory {tensor} -- shape '(batch, 1, hidden_size)'
 
         Returns:
-            next_memory {tensor} -- shape '(1, batch, hidden_size)'
+            next_memory {tensor} -- shape '(batch, 1, hidden_size)'
         """
         G = self.make_interaction(facts, questions, prev_memory)
         C = self.AGRU.forward(facts, G)
         concat = torch.cat([prev_memory.squeeze(
-            0), C, questions.squeeze(0)], dim=1)
+            1), C, questions.squeeze(1)], dim=1)
         # print("concat size: {}".format(concat.size()))
         next_memory = self.next_mem(concat)
         next_memory = torch.relu(next_memory)
-        next_memory = next_memory.unsqueeze(0)
+        next_memory = next_memory.unsqueeze(1)
         return next_memory

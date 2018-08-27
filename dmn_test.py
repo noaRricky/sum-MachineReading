@@ -29,7 +29,7 @@ def test_attention_gru():
     sentence_len = 4
     batch_size = 2
     attention_gru = AttentionGRU(input_size, HIDDEN_SIZE)
-    facts = torch.randn(sentence_len, batch_size, input_size)
+    facts = torch.randn(batch_size, sentence_len, input_size)
     G = torch.randn(batch_size, sentence_len)
     context = attention_gru.forward(facts, G)
     print("context size: {}".format(context.size()))
@@ -40,14 +40,16 @@ def text_episodic_memory():
     sentence_len = 4
     batch_size = 2
     episodic_memory = EpisodicMemory(HIDDEN_SIZE)
-    facts = torch.randn(sentence_len, batch_size, HIDDEN_SIZE)
-    questions = torch.randn(1, batch_size, HIDDEN_SIZE)
-    memory = torch.randn(1, batch_size, HIDDEN_SIZE)
-    episodic_memory.make_interaction(facts, questions, memory)
-    # print("g size: {}".format(g.size()))
-    # print("g value:\n {}".format(g))
-    # memory = episodic_memory.forward(facts, questions, memory)
-    # print("memory size: {}".format(memory.size()))
+    facts = torch.randn(batch_size, sentence_len, HIDDEN_SIZE)
+    questions = torch.randn(batch_size, 1, HIDDEN_SIZE)
+    memory = torch.randn(batch_size, 1, HIDDEN_SIZE)
+    g = episodic_memory.make_interaction(facts, questions, memory)
+    print("g size: {}".format(g.size()))
+    print("g value:\n {}".format(g))
+    memory = episodic_memory.forward(facts, questions, memory)
+    print("memory size: {}".format(memory.size()))
+    memory = episodic_memory.forward(facts, questions, memory)
+    print("second memory size: {}".format(memory.size()))
 
 
 def test_question_module():
@@ -87,6 +89,7 @@ def test_answer_module():
     #     _, words = output.topk(1)
     #     words = words.long()
     print("words size: {}".format(words.size()))
+    print("hidden size: {}".format(hidden.size()))
 
 
 def test_dmnp():
@@ -126,7 +129,9 @@ if __name__ == '__main__':
     # test_input_module()
     # test_answer_module()
     # test_dmnp()
-    # text_episodic_memory()
+    text_episodic_memory()
     # text_dmnp_loss()
     # test_dmnp_predict()
-    text_episodic_memory()
+    # test_question_module()
+    # test_attention_cell()
+    # test_attention_gru()

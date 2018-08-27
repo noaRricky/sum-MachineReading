@@ -7,7 +7,7 @@ from minit import uniform_init_rnn
 class QuestionModule(nn.Module):
     def __init__(self, embeded_size, hidden_size):
         super(QuestionModule, self).__init__()
-        self.gru = nn.GRU(embeded_size, hidden_size)
+        self.gru = nn.GRU(embeded_size, hidden_size, batch_first=True)
         uniform_init_rnn(self.gru)
 
     def forward(self, questions, word_embedding) -> torch.tensor:
@@ -18,21 +18,23 @@ class QuestionModule(nn.Module):
             word_embedding {nn.Embedding} -- embedding function
 
         Returns:
-            torch.tensor -- size: (1, batch, hidden_size)
+            torch.tensor -- size: (batch, 1, hidden_size)
         """
         questions = word_embedding(questions)
         # print('embeded questions size: {}'.format(questions.size()))
         # question.size -> batch_num, seq_len, input_size
-        questions = questions.transpose(0, 1)
         # print('questions transpose size: {}'.format(questions.size()))
-        _, questions = self.gru(questions)
-        return questions
+        # hidden shape: '1, batch_bum, hidden_size'
+        _, hidden = self.gru(questions)
+        # transpose hidden shape: 'batch, 1, hiddden_size'
+        hidden = hidden.transpose(0, 1)
+        return hidden
 
 
 class AnswerModule(nn.Module):
     def __init__(self, vocab_size, embeded_size, hidden_size):
         super(AnswerModule, self).__init__()
-        self.gru = nn.GRU(embeded_size, hidden_size * 2)
+        self.gru = nn.GRU(embeded_size, hidden_size * 2, batch_first=True)
         self.z = nn.Linear(2 * hidden_size, vocab_size)
 
         uniform_init_rnn(self.gru)
@@ -47,13 +49,13 @@ class AnswerModule(nn.Module):
 
         Returns:
             words {tensor} -- shape '(batch, vocab_size)'
-            hidden {tensor} -- shape '(1, batch, 2 * hidden_size)'
+            hidden {tensor} -- shape '(batch, 1, 2 * hidden_size)'
         """
         embeded = embedding(answers)
-        embeded = embeded.transpose(0, 1)
         output, hidden = self.gru(embeded, hidden)
-        # output.size() -> 1, batch, 2 * hidden_size
-        output = output.squeeze(0)
+        # output.size() -> batch, 1, 2 * hidden_size
+        output = output.squeeze(1)
+        hidden = hidden.transpose(0, 1)
         words = self.z(output)
         return words, hidden
 
@@ -74,11 +76,10 @@ class InputModule(nn.Module):
             word_embedding {nn.Embedding} -- embeddng for each idx word
 
         Returns:
-            torch.tensor -- output.size() -> (seq_len, batch, 2 * hidden_size)
+            torch.tensor -- output.size() -> (batch, seq_len, 2 * hidden_size)
         """
         contexts = embedding(contexts)
         # contexts.size() -> (batch, seq_len, embeded_size)
-        contexts = contexts.transpose(0, 1)
         output, _ = self.gru(contexts)
         return output
 

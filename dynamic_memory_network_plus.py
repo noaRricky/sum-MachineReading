@@ -46,7 +46,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
             max_length {int} -- default max length of each answer
 
         Returns:
-            hidden {tensor} --  shape '(1, batch, hidden_size)'
+            hidden {tensor} --  shape '(batch, 1, hidden_size)'
         """
         batch_num, _ = contexts.size()
 
@@ -78,7 +78,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
         hidden = self.forward(contexts, questions, max_length)
 
         preds = None
-        words = torch.zeros(batch_num, 1, dtype=torch.long)
+        words = torch.zeros(batch_num, 1, dtype=torch.long) + SOS_TOKEN
         for di in range(max_length):
             output, hidden = self.answer_module.forward(
                 hidden, words, self.word_embedding)
