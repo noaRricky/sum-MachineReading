@@ -16,6 +16,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
         embeded_size {int} -- the embedding result dimension
         hidden_size {int} -- the hidden layer feature size
         num_hop {int} -- how many time memory module update
+        device {str} -- which device use to compute tensor
     """
 
     def __init__(self, vocab_size, embeded_size, hidden_size, num_hop=3, qa=None, device='cpu'):

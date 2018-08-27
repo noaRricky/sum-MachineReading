@@ -31,7 +31,7 @@ def train_network():
 
     # initlise the network
     logging.info("init the dynamic memory model")
-    model = DynamicMemoryNetworkPlus(vocab_size, embeding_size, hidden_size)
+    model = DynamicMemoryNetworkPlus(vocab_size, embeding_size, hidden_size, device=device)
     model.to(device)
 
     # seting the optimizer
