@@ -49,13 +49,13 @@ class AnswerModule(nn.Module):
 
         Returns:
             words {tensor} -- shape '(batch, vocab_size)'
-            hidden {tensor} -- shape '(batch, 1, 2 * hidden_size)'
+            hidden {tensor} -- shape '(1, batch, 2 * hidden_size)'
         """
         embeded = embedding(answers)
+        # embeded size (batch, 1, embeded_size)
         output, hidden = self.gru(embeded, hidden)
         # output.size() -> batch, 1, 2 * hidden_size
         output = output.squeeze(1)
-        hidden = hidden.transpose(0, 1)
         words = self.z(output)
         return words, hidden
 
