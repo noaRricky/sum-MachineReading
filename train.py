@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from gensim.corpora import Dictionary
 
-from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
+from model import DynamicMemoryNetworkPlus
 from loader import QADataSet, pad_collate
 from constants import DATA_PATH, DIC_PATH, EXTRA_SIZE
 
