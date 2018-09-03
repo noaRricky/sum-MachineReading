@@ -82,7 +82,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
         hidden = self.forward(contexts, questions, max_length)
 
         preds = None
-        words = Variable(torch.zeros(batch_num, 1, dtype=torch.long) + SOS_TOKEN)
+        words = torch.zeros(batch_num, 1, dtype=torch.long, device=contexts.device) + SOS_TOKEN
         for di in range(max_length):
             output, hidden = self.answer_module.forward(
                 hidden, words, self.word_embedding)
@@ -113,7 +113,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
         hidden = self.forward(contexts, questions, max_length)
 
         for bi in range(batch_num):
-            word = Variable(torch.zeros(1, 1, dtype=torch.long) + SOS_TOKEN)
+            word = torch.zeros(1, 1, dtype=torch.long, device=contexts.device) + SOS_TOKEN
             answer = []
             each_hidden = hidden[:, bi, :].unsqueeze(0)
             for di in range(max_length):

@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
-
 from minit import uniform_init_rnn
 
 
@@ -68,7 +66,7 @@ class AttentionGRU(nn.Module):
             c {tensor} -- shape '(batch, hidden_size)'
         """
         batch_num, seq_num, hidden_size = facts.size()
-        c = Variable(torch.zeros(batch_num, hidden_size))
+        c = torch.zeros(batch_num, hidden_size, device=facts.device)
         for sid in range(seq_num):
             fact = facts[:, sid, :]
             g = G[:, sid]
