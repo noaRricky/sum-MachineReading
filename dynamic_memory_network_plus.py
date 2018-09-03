@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+from torch.autograd import Variable
 
 from module import InputModule, QuestionModule, AnswerModule
 from memory import EpisodicMemory
@@ -19,14 +20,13 @@ class DynamicMemoryNetworkPlus(nn.Module):
         device {str} -- which device use to compute tensor
     """
 
-    def __init__(self, vocab_size, embeded_size, hidden_size, num_hop=3, qa=None, device='cpu'):
+    def __init__(self, vocab_size, embeded_size, hidden_size, num_hop=3, qa=None):
         super(DynamicMemoryNetworkPlus, self).__init__()
 
         # init num file
         self.num_hop = num_hop
         self.qa = qa
         self.vocab_size = vocab_size
-        self.device = device
 
         # init network
         self.word_embedding = nn.Embedding(
@@ -82,8 +82,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
         hidden = self.forward(contexts, questions, max_length)
 
         preds = None
-        words = torch.zeros(batch_num, 1, dtype=torch.long,
-                            device=self.device) + SOS_TOKEN
+        words = Variable(torch.zeros(batch_num, 1, dtype=torch.long) + SOS_TOKEN)
         for di in range(max_length):
             output, hidden = self.answer_module.forward(
                 hidden, words, self.word_embedding)
@@ -114,8 +113,7 @@ class DynamicMemoryNetworkPlus(nn.Module):
         hidden = self.forward(contexts, questions, max_length)
 
         for bi in range(batch_num):
-            word = torch.zeros(1, 1, dtype=torch.long,
-                               device=self.device) + SOS_TOKEN
+            word = Variable(torch.zeros(1, 1, dtype=torch.long) + SOS_TOKEN)
             answer = []
             each_hidden = hidden[:, bi, :].unsqueeze(0)
             for di in range(max_length):
