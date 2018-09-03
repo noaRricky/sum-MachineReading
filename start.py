@@ -5,7 +5,7 @@ import jieba
 from gensim.corpora import Dictionary
 from gensim.models import Word2Vec
 
-from constants import ARTICLE_CONTENT, ARTICLE_TITLE, QUESTION, QUESTIONS, ANSWER, UNK_TOKEN
+from constants import ARTICLE_CONTENT, ARTICLE_TITLE, QUESTION, QUESTIONS, ANSWER
 
 # setting for embedding
 WINDOW_SIZE = 6
@@ -203,9 +203,9 @@ def str_q2b(ustring: str) -> str:
 
 
 if __name__ == '__main__':
-    # dictionary = build_dictionary('./data/question.json')
-    # dictionary.save('./data/jieba.dict')
-    dictionary = Dictionary.load('./data/jieba.dict')
+    dictionary = build_dictionary('./data/question.json')
+    dictionary.save('./data/jieba.dict')
+    # dictionary = Dictionary.load('./data/jieba.dict')
     # data = build_corpus('./data/question.json')
     data = build_token_corpus('./data/question.json', dictionary)
     with open('./data/data_idx.json', mode='w', encoding='utf-8') as fp:
