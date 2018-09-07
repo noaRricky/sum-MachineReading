@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from minit import uniform_init_rnn
+from model.minit import uniform_init_rnn
 
 
 class AttentionGRUCell(nn.Module):

@@ -7,7 +7,7 @@ from gensim.corpora import Dictionary
 
 from model import DynamicMemoryNetworkPlus
 from loader import QADataSet, pad_collate
-from constants import DATA_PATH, DIC_PATH, EXTRA_SIZE
+from model.constants import DATA_PATH, DIC_PATH, EXTRA_SIZE
 
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -41,6 +41,7 @@ def train_network():
     # load dataset
     logging.info("loading train dataset")
     dataset = QADataSet(DATA_PATH)
+    print("dataset size: {}".format(len(dataset)))
     dataloader = DataLoader(dataset, batch_size=1,
                             shuffle=True, collate_fn=pad_collate)
 

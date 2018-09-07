@@ -4,7 +4,7 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 
-from constants import QUESTION, QUESTIONS, ANSWER, ARTICLE_CONTENT, PAD_TOKEN, EOS_TOKEN, DATA_PATH
+from model.constants import QUESTION, QUESTIONS, ANSWER, ARTICLE_CONTENT, PAD_TOKEN, EOS_TOKEN, DATA_PATH
 
 
 class QADataSet(Dataset):

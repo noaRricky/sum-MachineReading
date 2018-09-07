@@ -1,12 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
-from torch.autograd import Variable
 
-from module import InputModule, QuestionModule, AnswerModule
-from memory import EpisodicMemory
-
-from constants import SOS_TOKEN, EOS_TOKEN
+from model.module import InputModule, QuestionModule, AnswerModule
+from model.memory import EpisodicMemory
+from model.constants import SOS_TOKEN, EOS_TOKEN
 
 
 class DynamicMemoryNetworkPlus(nn.Module):
@@ -82,7 +80,8 @@ class DynamicMemoryNetworkPlus(nn.Module):
         hidden = self.forward(contexts, questions, max_length)
 
         preds = None
-        words = torch.zeros(batch_num, 1, dtype=torch.long, device=contexts.device) + SOS_TOKEN
+        words = torch.zeros(batch_num, 1, dtype=torch.long,
+                            device=contexts.device) + SOS_TOKEN
         for di in range(max_length):
             output, hidden = self.answer_module.forward(
                 hidden, words, self.word_embedding)
@@ -113,7 +112,8 @@ class DynamicMemoryNetworkPlus(nn.Module):
         hidden = self.forward(contexts, questions, max_length)
 
         for bi in range(batch_num):
-            word = torch.zeros(1, 1, dtype=torch.long, device=contexts.device) + SOS_TOKEN
+            word = torch.zeros(1, 1, dtype=torch.long,
+                               device=contexts.device) + SOS_TOKEN
             answer = []
             each_hidden = hidden[:, bi, :].unsqueeze(0)
             for di in range(max_length):
@@ -146,7 +146,3 @@ class DynamicMemoryNetworkPlus(nn.Module):
         answers = answers.view(batch_num * answers_len)
         loss = self.criterion(preds, answers)
         return loss
-
-
-if __name__ == '__main__':
-    print("hello world")

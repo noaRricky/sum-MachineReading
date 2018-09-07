@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 
-from module import QuestionModule, AnswerModule, InputModule
-from memory import AttentionGRU, AttentionGRUCell, EpisodicMemory
-from dynamic_memory_network_plus import DynamicMemoryNetworkPlus
+from model.module import QuestionModule, AnswerModule, InputModule
+from model.memory import AttentionGRU, AttentionGRUCell, EpisodicMemory
+from model.dynamic_memory_network_plus import DynamicMemoryNetworkPlus
 
 # parameters for testing
 VOCAB_SIZE = 100
@@ -130,9 +130,9 @@ if __name__ == '__main__':
     # test_answer_module()
     # test_dmnp()
     # text_episodic_memory()
-    text_dmnp_loss()
+    # text_dmnp_loss()
     # test_dmnp_predict()
-    # test_question_module()
+    test_question_module()
     # test_attention_cell()
     # test_attention_gru()
     # test_dmnp()

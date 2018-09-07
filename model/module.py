@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
 
-from minit import uniform_init_rnn
+from model.minit import uniform_init_rnn
 
 
 class QuestionModule(nn.Module):
     def __init__(self, embeded_size, hidden_size):
         super(QuestionModule, self).__init__()
         self.gru = nn.GRU(embeded_size, hidden_size, batch_first=True)
+
         uniform_init_rnn(self.gru)
 
     def forward(self, questions, word_embedding) -> torch.tensor:
