@@ -1,7 +1,10 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from torch.utils.data import DataLoader
 import numpy as np
+
+from new.loaders import GloveDataSet, glove_collate
 
 
 class Glove(nn.Module):
@@ -26,20 +29,34 @@ class Glove(nn.Module):
         """
         return self.embedding(tokens) + self.embedding_bias
 
-    def fit(self, corpus):
+    def fit(self, corpus, num_epoch=6, batch_size=3, learning_rate=0.9):
         """fit the model with corpus
 
         Arguments:
             corpus {list} -- index word store in corpus, corpus -> sentences -> word
         """
+
+        # compute co-occurence matrix
         comat: np.array = self._get_comatrix(corpus)
+        
+        # prepare dataset
+        dataset = GloveDataSet(corpus)
+        dataloader = DataLoader(dataset, batch_size,
+                                shuffle=True, collate_fn=glove_collate)
+        
+        # set optimizer
+        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+
+        for iter_idx in range(num_epoch):
+            for idx, data in enumerate(dataloader):
+                
 
     def _get_comatrix(self, corpus) -> np.array:
         """compute the co-occurence probabilities of corpus
-        
+
         Arguments:
             corpus {list} -- index word store in corpus, corpus -> sentences -> word
-        
+
         Returns:
             [np.array] -- co-occrrence matrix
         """
