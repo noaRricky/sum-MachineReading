@@ -38,18 +38,17 @@ class Glove(nn.Module):
 
         # compute co-occurence matrix
         comat: np.array = self._get_comatrix(corpus)
-        
+
         # prepare dataset
         dataset = GloveDataSet(corpus)
         dataloader = DataLoader(dataset, batch_size,
                                 shuffle=True, collate_fn=glove_collate)
-        
+
         # set optimizer
         optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
         for iter_idx in range(num_epoch):
             for idx, data in enumerate(dataloader):
-                
 
     def _get_comatrix(self, corpus) -> np.array:
         """compute the co-occurence probabilities of corpus
@@ -89,7 +88,7 @@ class Glove(nn.Module):
                         context_word = sentence[i + j]
                         comat[center_word, context_word] += 1
         comat /= ctvect[:, np.newaxis]
-        comat[comat == np.nan] = 0
+        comat[np.isnan(comat)] = 0
         return comat
 
 
