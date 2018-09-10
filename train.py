@@ -51,9 +51,9 @@ def train_network():
             optimizer.zero_grad()
 
             # feed to trainig device
-            content = content.to(device)
-            question = question.to(device)
-            answer = answer.to(device)
+            content = content.long().to(device)
+            question = question.long().to(device)
+            answer = answer.long().to(device)
 
             # forward \
             loss = model.loss(content, question, answer)
