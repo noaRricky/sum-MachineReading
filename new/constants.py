@@ -1,8 +1,8 @@
 # setting for string
-UNK_TOKEN = -1
-PAD_TOKEN = 0
-SOS_TOKEN = 1
-EOS_TOKEN = 2
+UNK_TOKEN = 0
+PAD_TOKEN = 1
+SOS_TOKEN = 2
+EOS_TOKEN = 3
 
 UNK_WORD = '<unk>'
 PAD_WORD = '<pad>'
