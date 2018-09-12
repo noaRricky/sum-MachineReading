@@ -7,16 +7,20 @@ from gensim.corpora import Dictionary
 
 from model import DynamicMemoryNetworkPlus
 from loader import QADataSet, pad_collate
-from model.constants import DATA_PATH, DIC_PATH, EXTRA_SIZE
 
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 
+# setting for file
+DATA_PATH = './data/data_idx.json'
+DIC_PATH = './data/jieba.dict'
+
+
 def train_network():
     # get vocab size
     dictionary: Dictionary = Dictionary.load(DIC_PATH)
-    vocab_size = len(dictionary.token2id) + EXTRA_SIZE
+    vocab_size = len(dictionary.token2id) + 4
     del dictionary
 
     # select device to train

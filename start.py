@@ -5,7 +5,14 @@ import jieba
 from gensim.corpora import Dictionary
 from gensim.models import Word2Vec
 
-from model.constants import ARTICLE_CONTENT, ARTICLE_TITLE, QUESTION, QUESTIONS, ANSWER
+# setting for data
+ARTICLE_ID = 'article_id'
+ARTICLE_TITLE = 'article_title'
+ARTICLE_CONTENT = 'article_content'
+QUESTIONS = 'questions'
+QUESTION = 'question'
+QUESTIONS_ID = 'questions_id'
+ANSWER = 'answer'
 
 # setting for embedding
 WINDOW_SIZE = 6
