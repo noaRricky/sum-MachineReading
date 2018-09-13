@@ -151,3 +151,13 @@ class PositionWiseFeedForward(nn.Module):
         output = self.weight2(output).transpose(2, 1)
         output = self.dropout(output)
         return output
+
+
+class AddAndNorm(nn.Module):
+
+    def __init__(self, d_model):
+        self.norm = nn.LayerNorm(d_model)
+
+    def forward(self, x):
+        residual = x
+        return residual + self.norm(x)
