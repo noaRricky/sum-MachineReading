@@ -5,6 +5,10 @@ import torch.nn.init as init
 
 class ScaledDotProductAttention(nn.Module):
     """Scaled Dot-Product Attention
+
+    Arguments:
+        d_k {int} -- dimension of key
+        attn_dropout {float} -- dropout rate for attention result
     """
 
     def __init__(self, d_k, attn_dropout=0.1):
@@ -141,12 +145,20 @@ class PositionWiseFeedForward(nn.Module):
 
         # position-wise feed forward
         self.weight1 = nn.Conv1d(d_hidden, d_inner, 1)
-        self.weight2 = nn.Conv1d(d_hidden, d_inner, 1)
+        self.weight2 = nn.Conv1d(d_inner, d_hidden, 1)
         self.dropout = nn.Dropout(dropout_rate)
         self.relu = nn.ReLU()
 
     def forward(self, x):
+        """linear transformations are the same scross different positions,
+        Another way to describe this as two convolutions with kernel size 1
         
+        Args:
+            x (tensor): shape (batch, len_x, d_model)
+        
+        Returns:
+            tensor: normalized data with shape (batch, len_x, d_model)
+        """
         output = self.relu(self.weight1(x.transpose(1, 2)))
         output = self.weight2(output).transpose(2, 1)
         output = self.dropout(output)
@@ -161,3 +173,7 @@ class AddAndNorm(nn.Module):
     def forward(self, x):
         residual = x
         return residual + self.norm(x)
+
+
+if __name__ == '__main__':
+    print("Hello World")
