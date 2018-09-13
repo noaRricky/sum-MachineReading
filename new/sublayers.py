@@ -11,11 +11,10 @@ class ScaledDotProductAttention(nn.Module):
         attn_dropout {float} -- dropout rate for attention result
     """
 
-    def __init__(self, d_k, attn_dropout=0.1):
+    def __init__(self, d_k):
         super(ScaledDotProductAttention, self).__init__()
 
         self.scale_factor = 1 / (d_k ** 0.5)
-        self.dropout = nn.Dropout(attn_dropout)
         self.softmax = nn.Softmax(dim=2)
 
     def forward(self, q, k, v, attn_mask=None):
@@ -43,7 +42,6 @@ class ScaledDotProductAttention(nn.Module):
                 "{}.".format(attn_mask.size(), attn.size())
 
         attn = self.softmax(attn)
-        attn = self.dropout(attn)
         output = torch.bmm(attn, v)
 
         return output, attn
@@ -60,7 +58,7 @@ class MultiHeadAttention(nn.Module):
         dropout_rate {float} -- set for dropout operation
     """
 
-    def __init__(self, n_head, d_model, d_k, d_v, dropout_rate=0.1):
+    def __init__(self, n_head, d_model, d_k, d_v):
         super(MultiHeadAttention, self).__init__()
 
         self.n_head = n_head
@@ -73,7 +71,6 @@ class MultiHeadAttention(nn.Module):
 
         self.attention = ScaledDotProductAttention(d_k, dropout_rate)
         self.proj = nn.Linear(n_head * d_v, d_model)
-        self.dropout = nn.Dropout(dropout_rate)
 
         init.xavier_normal_(self.weight_qs)
         init.xavier_normal_(self.weight_ks)
@@ -126,7 +123,6 @@ class MultiHeadAttention(nn.Module):
 
         # preject back to d_model size
         outputs = self.proj(outputs)
-        outputs = self.dropout(outputs)
 
         return outputs, attns
 
@@ -163,17 +159,6 @@ class PositionWiseFeedForward(nn.Module):
         output = self.weight2(output).transpose(2, 1)
         output = self.dropout(output)
         return output
-
-
-class AddAndNorm(nn.Module):
-
-    def __init__(self, d_model):
-        self.norm = nn.LayerNorm(d_model)
-
-    def forward(self, x):
-        residual = x
-        return residual + self.norm(x)
-
 
 if __name__ == '__main__':
     print("Hello World")
