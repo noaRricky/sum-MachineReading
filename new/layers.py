@@ -24,3 +24,19 @@ def position_encoding_init(n_position, d_pos_vec):
     return torch.from_numpy(position_enc).type(torch.FloatTensor)
 
 
+def time_encoding_init(n_time, d_time_vec):
+    """ Init the sinusoid time encoding table
+
+    Args:
+        n_time (int): number the attention time
+        d_time_vec (int): dimension of time encoding vector
+    """
+    time_enc = np.array([
+        [time / np.power(10000, 2 * (j // 2) / d_time_vec)
+         for j in range(d_time_vec)]
+        if time != 0 else np.zeros(d_time_vec) for time in range(n_time)
+    ])
+
+    time_enc[1:, 0::2] = np.sin(time_enc[1:, 0::2])
+    time_enc[0:, 0::2] = np.cos(time_enc[0:, 0::2])
+
