@@ -51,10 +51,10 @@ class RecurrentEncoderBlock(nn.Module):
         self.dropout2 = nn.Dropout(dropout_rate)
         self.layer_normalize1 = nn.LayerNorm(d_model)
         self.layer_normalize2 = nn.LayerNorm(d_model)
-        self.pos_ffn = PositionWiseFeedForward(d_model, d_inner_hid)
+        self.transition_fn = PositionWiseFeedForward(d_model, d_inner_hid)
 
     def forward(self, enc_input, enc_pos, enc_time, position_encoder, time_encoder, self_attn_mask=None):
-        
+
         # Position Encoding addition
         enc_input += position_encoder(enc_pos)
 
@@ -63,7 +63,8 @@ class RecurrentEncoderBlock(nn.Module):
 
         # apply multi-attention operation and residual
         enc_residual = enc_input
-        enc_output, enc_slf_attn = self.slf_attn(enc_input, enc_input, enc_input)
+        enc_output, enc_slf_attn = self.slf_attn(
+            enc_input, enc_input, enc_input)
         enc_output += enc_residual
 
         # firt dropout and layer normalization
@@ -72,7 +73,7 @@ class RecurrentEncoderBlock(nn.Module):
 
         # apply position wise feed forward and residual
         enc_residual = enc_output
-        enc_output = self.pos_ffn(enc_output)
+        enc_output = self.transition_fn(enc_output)
         enc_output += enc_residual
 
         # dropout and layer normalization operation
@@ -83,6 +84,53 @@ class RecurrentEncoderBlock(nn.Module):
 
 
 class RecurrentDecoderBlock(nn.Module):
-    
+
     def __init__(self, d_model, d_inner_hid, n_head, d_k, d_v, dropout_rate=0.1):
-        pass
+        super(RecurrentDecoderBlock, self).__init__()
+
+        self.slf_attn = MultiHeadAttention(n_head, d_model, d_k, d_v)
+        self.enc_attn = MultiHeadAttention(n_head, d_model, d_k, d_v)
+        self.tran_fn = PositionWiseFeedForward(d_model, d_inner_hid)
+
+        self.dropout_list = [nn.Dropout(dropout_rate) for _ in range(3)]
+        self.layer_normalize_list = [nn.LayerNorm(d_model) for _ in range(3)]
+
+    def forward(self, dec_input, enc_output, dec_pos, dec_time, pos_encoder, time_encoder, slf_attn_mask=None, dec_enc_attn_mask=None):
+
+        # Position decoding addition
+        dec_input += pos_encoder(dec_pos)
+
+        # Time decoding addidtion
+        dec_input += time_encoder(dec_time)
+
+        # first self attention and residual
+        dec_residual = dec_input
+        dec_output, dec_slf_attn = self.slf_attn(
+            dec_input, dec_input, dec_input, attn_mask=slf_attn_mask)
+        dec_output += dec_residual
+
+        # first dropout and layer normalization
+        dec_output = self.dropout_list[0](dec_output)
+        dec_output = self.layer_normalize_list[0](dec_output)
+
+        # multihead attention
+        dec_residual = dec_output
+        dec_output, dec_enc_attn = self.enc_attn(
+            dec_output, enc_output, enc_output, attn_mask=dec_enc_attn_mask)
+        dec_output += dec_residual
+
+        # second dropout and layer normalization
+        dec_output = self.dropout_list[1](dec_output)
+        dec_output = self.layer_normalize_list[1](dec_output)
+
+        # transition function and residual
+        dec_residual = dec_output
+        dec_output = self.tran_fn(dec_output)
+        dec_output += dec_residual
+
+        # last dropout and layer normalization
+        dec_output = self.dropout_list[2](dec_output)
+        dec_output = self.layer_normalize_list[2](dec_output)
+
+        return dec_output
+

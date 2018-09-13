@@ -55,7 +55,6 @@ class MultiHeadAttention(nn.Module):
         d_model {int} -- hidden size of model
         d_k {int} -- dimension of key
         d_v {int} -- dimension of value
-        dropout_rate {float} -- set for dropout operation
     """
 
     def __init__(self, n_head, d_model, d_k, d_v):
@@ -133,16 +132,14 @@ class PositionWiseFeedForward(nn.Module):
     Arguments:
         d_hidden {int} -- dimension of hidden
         d_inner {int} -- dimension of inner hidden vector
-        dropout_rate {float} -- rate for dropout
     """
 
-    def __init__(self, d_hidden, d_inner, dropout_rate=0.1):
+    def __init__(self, d_hidden, d_inner):
         super(PositionWiseFeedForward, self).__init__()
 
         # position-wise feed forward
         self.weight1 = nn.Conv1d(d_hidden, d_inner, 1)
         self.weight2 = nn.Conv1d(d_inner, d_hidden, 1)
-        self.dropout = nn.Dropout(dropout_rate)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -157,7 +154,6 @@ class PositionWiseFeedForward(nn.Module):
         """
         output = self.relu(self.weight1(x.transpose(1, 2)))
         output = self.weight2(output).transpose(2, 1)
-        output = self.dropout(output)
         return output
 
 
