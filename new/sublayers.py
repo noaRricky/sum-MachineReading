@@ -29,7 +29,7 @@ class ScaledDotProductAttention(nn.Module):
             atten_mask {tensor} -- shape '(batch, n, m)' (default: {None})
 
         Returns:
-            output, attn -- output shape (batch, n, d_v) 
+            output, attn -- output shape (batch, n, d_v)
             attn shape (batch, n, m)
         """
 
@@ -69,7 +69,7 @@ class MultiHeadAttention(nn.Module):
         self.weight_ks = nn.Parameter(torch.Tensor(n_head, d_model, d_k))
         self.weight_vs = nn.Parameter(torch.Tensor(n_head, d_model, d_v))
 
-        self.attention = ScaledDotProductAttention(d_k, dropout_rate)
+        self.attention = ScaledDotProductAttention(d_k)
         self.proj = nn.Linear(n_head * d_v, d_model)
 
         init.xavier_normal_(self.weight_qs)
@@ -148,10 +148,10 @@ class PositionWiseFeedForward(nn.Module):
     def forward(self, x):
         """linear transformations are the same scross different positions,
         Another way to describe this as two convolutions with kernel size 1
-        
+
         Args:
             x (tensor): shape (batch, len_x, d_model)
-        
+
         Returns:
             tensor: normalized data with shape (batch, len_x, d_model)
         """
@@ -159,6 +159,7 @@ class PositionWiseFeedForward(nn.Module):
         output = self.weight2(output).transpose(2, 1)
         output = self.dropout(output)
         return output
+
 
 if __name__ == '__main__':
     print("Hello World")
