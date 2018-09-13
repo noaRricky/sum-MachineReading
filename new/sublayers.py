@@ -125,3 +125,29 @@ class MultiHeadAttention(nn.Module):
         outputs = self.dropout(outputs)
 
         return outputs, attns
+
+
+class PositionWiseFeedForward(nn.Module):
+    """ A two feed forward layer module
+
+    Arguments:
+        d_hidden {int} -- dimension of hidden
+        d_inner {int} -- dimension of inner hidden vector
+        dropout_rate {float} -- rate for dropout
+    """
+
+    def __init__(self, d_hidden, d_inner, dropout_rate=0.1):
+        super(PositionWiseFeedForward, self).__init__()
+
+        # position-wise feed forward
+        self.weight1 = nn.Conv1d(d_hidden, d_inner, 1)
+        self.weight2 = nn.Conv1d(d_hidden, d_inner, 1)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        
+        output = self.relu(self.weight1(x.transpose(1, 2)))
+        output = self.weight2(output).transpose(2, 1)
+        output = self.dropout(output)
+        return output
