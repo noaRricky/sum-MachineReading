@@ -57,7 +57,7 @@ class MultiHeadAttention(nn.Module):
         d_v {int} -- dimension of value
     """
 
-    def __init__(self, n_head, d_model, d_k, d_v):
+    def __init__(self, n_head, d_model, d_k, d_v, dropout_rate=0.1):
         super(MultiHeadAttention, self).__init__()
 
         self.n_head = n_head
@@ -70,6 +70,8 @@ class MultiHeadAttention(nn.Module):
 
         self.attention = ScaledDotProductAttention(d_k)
         self.proj = nn.Linear(n_head * d_v, d_model)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.layer_normalize = nn.LayerNorm(d_model)
 
         init.xavier_normal_(self.weight_qs)
         init.xavier_normal_(self.weight_ks)
@@ -87,6 +89,7 @@ class MultiHeadAttention(nn.Module):
         Keyword Arguments:
             atten_mask {tenor} -- shape (batch, n, m) used for decoder (default: {None})
         """
+        residual = q
 
         n_head, d_k, d_v = self.n_head, self.d_k, self.d_v
 
@@ -122,6 +125,10 @@ class MultiHeadAttention(nn.Module):
 
         # preject back to d_model size
         outputs = self.proj(outputs)
+        outputs += residual
+
+        outputs = self.dropout(outputs)
+        outputs = self.layer_normalize(outputs)
 
         return outputs, attns
 
@@ -134,13 +141,17 @@ class PositionWiseFeedForward(nn.Module):
         d_inner {int} -- dimension of inner hidden vector
     """
 
-    def __init__(self, d_hidden, d_inner):
+    def __init__(self, d_hidden, d_inner, dropout_rate=0.1):
         super(PositionWiseFeedForward, self).__init__()
 
         # position-wise feed forward
         self.weight1 = nn.Conv1d(d_hidden, d_inner, 1)
         self.weight2 = nn.Conv1d(d_inner, d_hidden, 1)
         self.relu = nn.ReLU()
+
+        # dropout and layer normalization
+        self.dropout = nn.Dropout(dropout_rate)
+        self.layer_normalize = nn.LayerNorm(d_hidden)
 
     def forward(self, x):
         """linear transformations are the same scross different positions,
@@ -152,8 +163,14 @@ class PositionWiseFeedForward(nn.Module):
         Returns:
             tensor: normalized data with shape (batch, len_x, d_model)
         """
+        residual = x
+
         output = self.relu(self.weight1(x.transpose(1, 2)))
         output = self.weight2(output).transpose(2, 1)
+        output += residual
+
+        output = self.dropout(output)
+        output = self.layer_normalize(output)
         return output
 
 
