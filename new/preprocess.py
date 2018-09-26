@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import cPickle
+import pickle
 import json
 
 import jieba
@@ -105,12 +105,12 @@ def _process_data(path_lst, word_min_count=5, output_file_path=[]):
         raw_data.append(seg_data(path))
     word_count = build_word_count([y for x in raw_data for y in x])
     with open('data/word-count.obj', 'wb') as f:
-        cPickle.dump(word_count, f)
+        pickle.dump(word_count, f)
     word2id = build_word2id(word_count, word_min_count)
     with open('data/word2id.obj', 'wb') as f:
-        cPickle.dump(word2id, f)
+        pickle.dump(word2id, f)
     for one_raw_data, one_output_file_path in zip(raw_data, output_file_path):
         with open(one_output_file_path, 'wb') as f:
             one_data = transform_data_to_id(one_raw_data, word2id)
-            cPickle.dump(one_data, f)
+            pickle.dump(one_data, f)
     return len(word2id)

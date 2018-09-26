@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import argparse
-import cPickle
+import pickle
 import codecs
 
 import torch
@@ -35,7 +35,7 @@ if args.cuda:
     model.cuda()
 
 with open(args.word_path, 'rb') as f:
-    word2id = cPickle.load(f)
+    word2id = pickle.load(f)
 
 raw_data = seg_data(args.data)
 transformed_data = transform_data_to_id(raw_data, word2id)
