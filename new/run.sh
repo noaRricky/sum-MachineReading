@@ -1,0 +1,1 @@
+/home/noaricky/anaconda3/envs/py2/bin/python ./train.py --cuda --save baseline_model.pt

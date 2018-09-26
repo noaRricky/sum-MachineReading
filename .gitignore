@@ -1,5 +1,6 @@
 data/*
 dmn/data/*
+new/data/*
 .vscode/*
 __pycache__/*
 */__pycache__/*
