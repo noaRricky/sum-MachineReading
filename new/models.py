@@ -113,5 +113,5 @@ class RecurrentEncoder(nn.Module):
             n_src_vocab, d_word_vec, padding_idx=PAD_TOKEN)
 
         self.layer_stack = nn.ModuleList([
-            RecurrentEncoderBlock(d_model, d_inner_hid, n_head, d_k, d_v) 
+            RecurrentEncoderBlock(d_model, d_inner_hid, n_head, d_k, d_v)
             for _ in range(n_layers)])
