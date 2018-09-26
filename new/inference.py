@@ -4,11 +4,12 @@ import cPickle
 import codecs
 
 import torch
-from utils import *
+from utils import pad_answer, padding
 
 from preprocess import seg_data, transform_data_to_id
 
-parser = argparse.ArgumentParser(description='inference procedure, note you should train the data at first')
+parser = argparse.ArgumentParser(
+    description='inference procedure, note you should train the data at first')
 
 parser.add_argument('--data', type=str,
                     default='data/ai_challenger_oqmrc_testa_20180816/ai_challenger_oqmrc_testa.json',
@@ -23,7 +24,7 @@ parser.add_argument('--model', type=str, default='model.pt',
                     help='model path')
 parser.add_argument('--batch_size', type=int, default=32, metavar='N',
                     help='batch size')
-parser.add_argument('--cuda', action='store_true',default=True,
+parser.add_argument('--cuda', action='store_true', default=True,
                     help='use CUDA')
 
 args = parser.parse_args()
@@ -40,7 +41,7 @@ raw_data = seg_data(args.data)
 transformed_data = transform_data_to_id(raw_data, word2id)
 data = [x + [y[2]] for x, y in zip(transformed_data, raw_data)]
 data = sorted(data, key=lambda x: len(x[1]))
-print 'test data size {:d}'.format(len(data))
+print('test data size {:d}'.format(len(data)))
 
 
 def inference():
@@ -54,7 +55,8 @@ def inference():
             answer = pad_answer([x[2] for x in one])
             str_words = [x[-1] for x in one]
             ids = [x[3] for x in one]
-            query, passage, answer = torch.LongTensor(query), torch.LongTensor(passage), torch.LongTensor(answer)
+            query, passage, answer = torch.LongTensor(
+                query), torch.LongTensor(passage), torch.LongTensor(answer)
             if args.cuda:
                 query = query.cuda()
                 passage = passage.cuda()
@@ -64,9 +66,9 @@ def inference():
                 prediction_answer = u''.join(candidates[prediction])
                 predictions.append(str(q_id) + '\t' + prediction_answer)
     outputs = u'\n'.join(predictions)
-    with codecs.open(args.output, 'w',encoding='utf-8') as f:
+    with codecs.open(args.output, 'w', encoding='utf-8') as f:
         f.write(outputs)
-    print 'done!'
+    print('done!')
 
 
 if __name__ == '__main__':

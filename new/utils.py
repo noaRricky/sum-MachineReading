@@ -29,7 +29,8 @@ def padding(sequence, pads=0, max_len=None, dtype='int32', return_matrix_for_siz
         seq_max_len = max(v_length)
         if (max_len is None) or (max_len > seq_max_len):
             max_len = seq_max_len
-        v_length = list(map(lambda z: z if z <= max_len else max_len, v_length))
+        v_length = list(
+            map(lambda z: z if z <= max_len else max_len, v_length))
         x = (np.ones((len(sequence), max_len)) * pads).astype(dtype)
         for idx, s in enumerate(sequence):
             trunc = s[:max_len]

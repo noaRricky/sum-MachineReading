@@ -5,7 +5,7 @@ import torch
 
 from model import MwAN
 from preprocess import process_data
-from utils import *
+from utils import shuffle_data, get_model_parameters, pad_answer, padding
 
 parser = argparse.ArgumentParser(description='PyTorch implementation for Multiway Attention Networks for Modeling '
                                              'Sentence Pairs of the AI-Challenges')
@@ -36,7 +36,8 @@ args = parser.parse_args()
 vocab_size = process_data(args.data, args.threshold)
 vocab_size = 98745
 
-model = MwAN(vocab_size=vocab_size, embedding_size=args.emsize, encoder_size=args.nhid, drop_out=args.dropout)
+model = MwAN(vocab_size=vocab_size, embedding_size=args.emsize,
+             encoder_size=args.nhid, drop_out=args.dropout)
 print('Model total parameters:', get_model_parameters(model))
 if args.cuda:
     model.cuda()
@@ -48,7 +49,8 @@ with open(args.data + 'dev.pickle', 'rb') as f:
     dev_data = cPickle.load(f)
 dev_data = sorted(dev_data, key=lambda x: len(x[1]))
 
-print('train data size {:d}, dev data size {:d}'.format(len(train_data), len(dev_data)))
+print('train data size {:d}, dev data size {:d}'.format(
+    len(train_data), len(dev_data)))
 
 
 def train(epoch):
@@ -60,7 +62,8 @@ def train(epoch):
         query, _ = padding([x[0] for x in one], max_len=50)
         passage, _ = padding([x[1] for x in one], max_len=350)
         answer = pad_answer([x[2] for x in one])
-        query, passage, answer = torch.LongTensor(query), torch.LongTensor(passage), torch.LongTensor(answer)
+        query, passage, answer = torch.LongTensor(
+            query), torch.LongTensor(passage), torch.LongTensor(answer)
         if args.cuda:
             query = query.cuda()
             passage = passage.cuda()
@@ -71,9 +74,9 @@ def train(epoch):
         total_loss += loss.item()
         optimizer.step()
         if (num + 1) % args.log_interval == 0:
-            print '|------epoch {:d} train error is {:f}  eclipse {:.2f}%------|'.format(epoch,
+            print('|------epoch {:d} train error is {:f}  eclipse {:.2f}%------|'.format(epoch,
                                                                                          total_loss / args.log_interval,
-                                                                                         i * 100.0 / len(data))
+                                                                                         i * 100.0 / len(data)))
             total_loss = 0
 
 
@@ -86,7 +89,8 @@ def test():
             query, _ = padding([x[0] for x in one], max_len=50)
             passage, _ = padding([x[1] for x in one], max_len=500)
             answer = pad_answer([x[2] for x in one])
-            query, passage, answer = torch.LongTensor(query), torch.LongTensor(passage), torch.LongTensor(answer)
+            query, passage, answer = torch.LongTensor(
+                query), torch.LongTensor(passage), torch.LongTensor(answer)
             if args.cuda:
                 query = query.cuda()
                 passage = passage.cuda()
@@ -106,7 +110,8 @@ def main():
             best = acc
             with open(args.save, 'wb') as f:
                 torch.save(model, f)
-        print 'epcoh {:d} dev acc is {:f}, best dev acc {:f}'.format(epoch, acc, best)
+        print('epcoh {:d} dev acc is {:f}, best dev acc {:f}'.format(
+            epoch, acc, best))
 
 
 if __name__ == '__main__':

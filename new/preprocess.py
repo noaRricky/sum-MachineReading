@@ -10,7 +10,7 @@ def seg_line(line):
 
 
 def seg_data(path):
-    print 'start process ', path
+    print('start process ', path)
     data = []
     with open(path, 'r') as f:
         for line in f:
@@ -33,7 +33,7 @@ def build_word_count(data):
 
     for one in data:
         [add_count(x) for x in one[0:3]]
-    print 'word type size ', len(wordCount)
+    print('word type size ', len(wordCount))
     return wordCount
 
 
@@ -48,7 +48,7 @@ def build_word2id(wordCount, threshold=10):
             for char in chars:
                 if char not in word2id:
                     word2id[char] = len(word2id)
-    print 'processed word size ', len(word2id)
+    print('processed word size ', len(word2id))
     return word2id
 
 
@@ -91,7 +91,7 @@ def process_data(data_path, threshold):
     train_file_path = data_path + 'ai_challenger_oqmrc_validationset_20180816/ai_challenger_oqmrc_validationset.json'
     dev_file_path = data_path + 'ai_challenger_oqmrc_trainingset_20180816/ai_challenger_oqmrc_trainingset.json'
     test_a_file_path = data_path + 'ai_challenger_oqmrc_testa_20180816/ai_challenger_oqmrc_testa.json'
-    test_b_file_path = data_path + 'ai_challenger_oqmrc_testb_20180816/ai_challenger_oqmrc_testb.json'
+    # test_b_file_path = data_path + 'ai_challenger_oqmrc_testb_20180816/ai_challenger_oqmrc_testb.json'
     # path_lst = [train_file_path, dev_file_path, test_a_file_path, test_b_file_path]
     # output_path = [data_path + x for x in ['dev.pickle', 'train.pickle', 'testa.pickle', 'testb.pickle']]
     path_lst = [train_file_path, dev_file_path, test_a_file_path]
