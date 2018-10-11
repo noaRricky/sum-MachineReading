@@ -1,20 +1,21 @@
-# -*- coding: utf-8 -*-
 import torch
 from torch import nn
-from torch.nn import functional as F
+import torch.nn.functional as F
 
 
 class MwAN(nn.Module):
     def __init__(self, vocab_size, embedding_size, encoder_size, drop_out=0.2):
         super(MwAN, self).__init__()
-        self.drop_out = nn.Dropout(drop_out)
+        self.p_dropout = nn.Dropout(drop_out)
+        self.q_dropout = nn.Dropout(drop_out)
+        self.output_dropout = nn.Dropout(drop_out)
         self.embedding = nn.Embedding(
             vocab_size + 1, embedding_dim=embedding_size)
         self.q_encoder = nn.GRU(input_size=embedding_size, hidden_size=encoder_size, batch_first=True,
                                 bidirectional=True)
         self.p_encoder = nn.GRU(input_size=embedding_size, hidden_size=encoder_size, batch_first=True,
                                 bidirectional=True)
-        self.a_encoder = nn.GRU(input_size=embedding_size, hidden_size=embedding_size / 2, batch_first=True,
+        self.a_encoder = nn.GRU(input_size=embedding_size, hidden_size=embedding_size // 2, batch_first=True,
                                 bidirectional=True)
         self.a_attention = nn.Linear(embedding_size, 1, bias=False)
         # Concat Attention
@@ -65,9 +66,9 @@ class MwAN(nn.Module):
         a_output = a_score.transpose(2, 1).bmm(a_embedding).squeeze()
         a_embedding = a_output.view(a_embeddings.size(0), 3, -1)
         hq, _ = self.q_encoder(p_embedding)
-        hq = self.drop_out(hq)
+        hq = self.q_dropout(hq)
         hp, _ = self.p_encoder(q_embedding)
-        hp = self.drop_out(hq)
+        hp = self.p_dropout(hp)
         _s1 = self.Wc1(hq).unsqueeze(1)
         _s2 = self.Wc2(hp).unsqueeze(2)
         sjt = self.vc(torch.tanh(_s1 + _s2)).squeeze()
@@ -97,8 +98,8 @@ class MwAN(nn.Module):
         sj = torch.softmax(
             self.vp(self.Wp1(aggregation_representation) + self.Wp2(rq)).transpose(2, 1), 2)
         rp = sj.bmm(aggregation_representation)
-        encoder_output = F.dropout(F.leaky_relu(
-            self.prediction(rp)), self.drop_out)
+        encoder_output = self.output_dropout(F.leaky_relu(
+            self.prediction(rp)))
         score = torch.softmax(a_embedding.bmm(
             encoder_output.transpose(2, 1)).squeeze(), 1)
         if not is_train:

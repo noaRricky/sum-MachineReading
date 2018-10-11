@@ -12,9 +12,9 @@ def seg_line(line):
 def seg_data(path):
     print('start process ', path)
     data = []
-    with open(path, 'r') as f:
+    with open(path, 'rb') as f:
         for line in f:
-            dic = json.loads(line, encoding='utf-8')
+            dic = json.loads(line)
             question = dic['query']
             doc = dic['passage']
             alternatives = dic['alternatives']
@@ -23,24 +23,24 @@ def seg_data(path):
 
 
 def build_word_count(data):
-    wordCount = {}
+    word_count = {}
 
     def add_count(lst):
         for word in lst:
-            if word not in wordCount:
-                wordCount[word] = 0
-            wordCount[word] += 1
+            if word not in word_count:
+                word_count[word] = 0
+            word_count[word] += 1
 
     for one in data:
         [add_count(x) for x in one[0:3]]
-    print('word type size ', len(wordCount))
-    return wordCount
+    print('word type size ', len(word_count))
+    return word_count
 
 
-def build_word2id(wordCount, threshold=10):
+def build_word2id(word_count, threshold=10):
     word2id = {'<PAD>': 0, '<UNK>': 1}
-    for word in wordCount:
-        if wordCount[word] >= threshold:
+    for word in word_count:
+        if word_count[word] >= threshold:
             if word not in word2id:
                 word2id[word] = len(word2id)
         else:

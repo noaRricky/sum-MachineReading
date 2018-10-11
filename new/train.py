@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import argparse
-import cPickle
+import pickle
 import torch
 
 from model import MwAN
@@ -33,7 +33,7 @@ parser.add_argument('--save', type=str, default='model.pt',
 
 args = parser.parse_args()
 
-vocab_size = process_data(args.data, args.threshold)
+# vocab_size = process_data(args.data, args.threshold)
 vocab_size = 98745
 
 model = MwAN(vocab_size=vocab_size, embedding_size=args.emsize,
@@ -44,9 +44,9 @@ if args.cuda:
 optimizer = torch.optim.Adamax(model.parameters())
 
 with open(args.data + 'train.pickle', 'rb') as f:
-    train_data = cPickle.load(f)
+    train_data = pickle.load(f)
 with open(args.data + 'dev.pickle', 'rb') as f:
-    dev_data = cPickle.load(f)
+    dev_data = pickle.load(f)
 dev_data = sorted(dev_data, key=lambda x: len(x[1]))
 
 print('train data size {:d}, dev data size {:d}'.format(
