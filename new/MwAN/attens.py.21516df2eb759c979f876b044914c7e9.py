@@ -42,7 +42,7 @@ class MultiHeadAtten(nn.Module):
 
         if atten_mask:
             atten_mask = atten_mask.repeat(num_heads, 1, 1)
-
+        
         # scaled dot product attention
         context, atten = self.attention(query, key, value, atten_mask)
 
@@ -57,7 +57,7 @@ class MultiHeadAtten(nn.Module):
 
         # add residual and norm layer
         output = self.layer_norm(residual + output)
-
+        
         return output, atten
 
 
