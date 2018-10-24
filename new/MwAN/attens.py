@@ -7,10 +7,10 @@ class ScaledDotProductAtten(nn.Module):
     """Scaled dot-product attention mechainsm
     """
 
-    def __init__(self, scale=None, atten_drop=0.1):
+    def __init__(self, scale=None, atten_dropout=0.1):
         super(ScaledDotProductAtten, self).__init__()
         self.scale = scale
-        self.dropout = nn.Dropout(atten_drop)
+        self.dropout = nn.Dropout(atten_dropout)
         self.softmax = nn.Softmax(dim=2)
 
     def forward(self, query, key, value, atten_mask=None):
@@ -51,8 +51,8 @@ class ConcatAtten(nn.Module):
         k = self.Wc2(key).unsqueeze(2)
         sjt = self.vc(torch.tanh(q + k)).squeeze()
         attens = torch.softmax(sjt, 2)
-        attens = torch.bmm(value, attens)
-        return attens
+        context = torch.bmm(value, attens)
+        return context
 
 
 class BilinearAtten(nn.Module):
@@ -83,3 +83,11 @@ class DotAtten(nn.Module):
         k = query.unsqueeze(2)
         attens = self.vd(torch.tanh(self.Wd(q, k))).squeeze()
         attens = self.softmax(attens, dim=2)
+
+
+class MinusAtten(nn.Module):
+
+    def __init__(self, model_dim, atten_dropout=0.1):
+        super(MinusAtten, self).__init__()
+        self.model_dim = model_dim
+        self.dropout = nn.Dropout(atten_dropout)
