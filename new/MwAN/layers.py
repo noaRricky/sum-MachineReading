@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from attens import MultiHeadAtten
+
 
 class PositionwiseFeedForward(nn.Module):
     """ a　two layer feed forward"""
@@ -23,3 +25,22 @@ class PositionwiseFeedForward(nn.Module):
         # add residual and norm layer
         output = self.layer_norm(residual + output)
         return output
+
+
+class TransformerEncoder(nn.Module):
+    """ Transformer encoder """
+
+    def __init__(self, model_dim=512, num_heads=8, ffn_dim=2018, dropout=0.1)
+    super(TransformerEncoder, self).__init__()
+
+    self.attention = MultiHeadAtten(model_dim, num_heads, dropout)
+    self.feed_forward = PositionwiseFeedForward(
+        model_dim, ffn_dim, dropout)
+
+    def forward(self, inputs, atten_mask=None):
+
+        # self attention
+        context, atten = self.attention(inputs, inputs, inputs, atten_mask)
+        # feed forward
+        output = self.feed_forward(context)
+        return output, atten
