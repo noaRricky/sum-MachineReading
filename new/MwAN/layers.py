@@ -30,12 +30,12 @@ class PositionwiseFeedForward(nn.Module):
 class TransformerEncoder(nn.Module):
     """ Transformer encoder """
 
-    def __init__(self, model_dim=512, num_heads=8, ffn_dim=2018, dropout=0.1)
-    super(TransformerEncoder, self).__init__()
+    def __init__(self, encode_size=512, num_heads=8, ffn_dim=2018, dropout=0.1):
+        super(TransformerEncoder, self).__init__()
 
-    self.attention = MultiHeadAtten(model_dim, num_heads, dropout)
-    self.feed_forward = PositionwiseFeedForward(
-        model_dim, ffn_dim, dropout)
+        self.attention = MultiHeadAtten(encode_size, num_heads, dropout)
+        self.feed_forward = PositionwiseFeedForward(
+            encode_size, ffn_dim, dropout)
 
     def forward(self, inputs, atten_mask=None):
 
@@ -44,3 +44,21 @@ class TransformerEncoder(nn.Module):
         # feed forward
         output = self.feed_forward(context)
         return output, atten
+
+
+class RNMTPlusEncoder(nn.Module):
+
+    def __init__(self, encode_size, hidden_size, dropout=0.1):
+        super(RNMTPlusEncoder, self).__init__()
+
+        self.dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm(hidden_size)
+        self.lstm = nn.LSTM(encode_size, hidden_size,
+                            batch_first=True, bidirectional=True)
+
+    def forward(self, inputs):
+
+        residual = inputs
+        output, _ = self.lstm(inputs)
+        output = self.dropout(output)
+        return self.layer_norm(residual + output)
