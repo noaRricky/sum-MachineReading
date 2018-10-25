@@ -97,55 +97,93 @@ class ScaledDotProductAtten(nn.Module):
 
 class ConcatAtten(nn.Module):
 
-    def __init__(self, encoder_size: int):
+    def __init__(self, encoder_size, atten_dropout=0.0):
         super(ConcatAtten, self).__init__()
 
         self.Wc1 = nn.Linear(2 * encoder_size, encoder_size, bias=False)
         self.Wc2 = nn.Linear(2 * encoder_size, encoder_size, bias=False)
         self.vc = nn.Linear(encoder_size, 1, bias=False)
+        self.softmax = nn.Softmax(dim=2)
+        self.dropout = nn.Dropout(atten_dropout)
 
-    def forward(self, query, key, value):
+    def forward(self, query, key, value, atten_mask=None):
         q = self.Wc1(query).unsqueeze(1)
         k = self.Wc2(key).unsqueeze(2)
         sjt = self.vc(torch.tanh(q + k)).squeeze()
-        attens = torch.softmax(sjt, 2)
-        context = torch.bmm(value, attens)
-        return context
+
+        if atten_mask:
+            sjt.masked_fill_(atten_mask, -np.inf)
+
+        atten = self.softmax(sjt)
+        atten = self.dropout(atten)
+        context = torch.bmm(atten, value)
+        return context, atten
 
 
 class BilinearAtten(nn.Module):
 
-    def __init__(self, encoder_size: int):
+    def __init__(self, encoder_size: int, atten_dropout=0.0):
         super(BilinearAtten, self).__init__()
 
         self.Wb = nn.Linear(2 * encoder_size, encoder_size, bias=False)
+        self.softmax = nn.Softmax(dim=2)
+        self.dropout = nn.Dropout(atten_dropout)
 
-    def forward(self, query, key, value):
-        q = self.Wb(query).transpose(2, 1)
-        attens = torch.bmm(key, q)
-        attens = torch.softmax(attens, 2)
-        attens = torch.bmm(value, attens)
-        return attens
+    def forward(self, query, key, value, atten_mask=None):
+        s1 = self.Wb(query).transpose(2, 1)
+        sjt = torch.bmm(key, s1)
+        if atten_mask:
+            sjt.masked_fill_(atten_mask, -np.inf)
+        atten = self.softmax(sjt)
+        atten = self.dropout(atten)
+        context = torch.bmm(value, atten)
+        return context, atten
 
 
 class DotAtten(nn.Module):
 
-    def __init__(self, encoder_size: int):
+    def __init__(self, encoder_size: int, atten_dropout=0.0):
         super(DotAtten, self).__init__()
 
         self.Wd = nn.Linear(2 * encoder_size, encoder_size, bias=False)
         self.vd = nn.Linear(encoder_size, 1, bias=False)
+        self.softmax = nn.Softmax(dim=2)
+        self.dropout = nn.Dropout(atten_dropout)
 
-    def forward(self, query, key, value):
+    def forward(self, query, key, value, atten_mask=None):
         q = query.unsqueeze(1)
         k = query.unsqueeze(2)
-        attens = self.vd(torch.tanh(self.Wd(q, k))).squeeze()
-        attens = self.softmax(attens, dim=2)
+        sjt = self.vd(torch.tanh(self.Wd(q * k))).squeeze()
+
+        if atten_mask:
+            sjt.masked_fill_(atten_mask, -np.inf)
+
+        atten = self.softmax(sjt)
+        atten = self.dropout(atten)
+        context = torch.bmm(atten, value)
+        return context, atten
 
 
 class MinusAtten(nn.Module):
 
-    def __init__(self, model_dim, atten_dropout=0.1):
+    def __init__(self, encoder_size, atten_dropout=0.1):
         super(MinusAtten, self).__init__()
-        self.model_dim = model_dim
+
+        self.Wm = nn.Linear(2 * encoder_size, encoder_size, bias=False)
+        self.vm = nn.Linear(encoder_size, 1, bias=False)
+        self.softmax = nn.Softmax(dim=2)
         self.dropout = nn.Dropout(atten_dropout)
+
+    def forward(self, query, key, value, atten_mask=None):
+
+        q = query.unsqueeze(1)
+        k = query.unsqueeze(2)
+        sjt = self.vm(torch.tanh(self.Wm(q - k))).squeeze()
+
+        if atten_mask:
+            sjt.masked_fill_(atten_mask, -np.inf)
+
+        atten = self.softmax(sjt)
+        atten = self.dropout(atten)
+        context = torch.bmm(atten, value)
+        return context, atten
