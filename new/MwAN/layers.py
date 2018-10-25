@@ -48,12 +48,12 @@ class TransformerEncoder(nn.Module):
 
 class RNMTPlusEncoder(nn.Module):
 
-    def __init__(self, encode_size, hidden_size, dropout=0.1):
+    def __init__(self, model_dim, dropout=0.1):
         super(RNMTPlusEncoder, self).__init__()
 
         self.dropout = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm(hidden_size)
-        self.lstm = nn.LSTM(encode_size, hidden_size,
+        self.layer_norm = nn.LayerNorm(model_dim)
+        self.lstm = nn.LSTM(model_dim, model_dim,
                             batch_first=True, bidirectional=True)
 
     def forward(self, inputs):
@@ -62,3 +62,16 @@ class RNMTPlusEncoder(nn.Module):
         output, _ = self.lstm(inputs)
         output = self.dropout(output)
         return self.layer_norm(residual + output)
+
+
+class AggregateLayer(nn.Module):
+
+    def __init__(self, model_dim):
+        super(AggregateLayer, self).__init__()
+
+        self.gru_agg(6 * model_dim, model_dim,
+                     batch_first=True, bidirectional=True)
+
+    def forward(self, hp, qts, qtc, qtd, qtb, qtm):
+        aggregation = torch.cat([hp, qts, qtc, qtd, qtb, qtm], dim=2)
+        aggregation_represent, _ = self.gru_agg(aggregation)
