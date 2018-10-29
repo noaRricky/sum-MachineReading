@@ -79,7 +79,7 @@ class AggregateLayer(nn.Module):
 
 class PredictionLayer(nn.Module):
 
-    def __init__(self, model_dim):
+    def __init__(self, model_dim, dropout=0.1):
         super(PredictionLayer, self).__init__()
 
         self.Wq = nn.Linear(2 * model_dim, model_dim, bias=False)
@@ -88,3 +88,17 @@ class PredictionLayer(nn.Module):
         self.Wp2 = nn.Linear(2 * model_dim, model_dim, bias=False)
         self.vp = nn.Linear(model_dim, 1, bias=False)
         self.prediction = nn.Linear(2 * model_dim, model_dim, bias=False)
+        self.que_softmax = nn.Softmax(dim=2)
+        self.agg_softmax = nn.Softmax(dim=2)
+        self.score_softmax = nn.Softmax(dim=1)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, hidden_question, ans_embed, agg_represent):
+        sj = self.vq(torch.tanh(self.Wq(hidden_question))).transpose(2, 1)
+        rq = self.que_softmax(sj).bmm(hidden_question)
+        sj = self.agg_softmax(self.vp(self.Wp1(agg_represent) + self.Wp2(rq)))
+        rp = torch.bmm(sj, agg_represent)
+        output = self.dropout(F.leaky_relu(self.prediction(rp)))
+        score = self.score_softmax(
+            torch.bmm(ans_embed, output.transpose(2, 1)).squeeze())
+        return score
