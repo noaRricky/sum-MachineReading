@@ -81,3 +81,10 @@ class PredictionLayer(nn.Module):
 
     def __init__(self, model_dim):
         super(PredictionLayer, self).__init__()
+
+        self.Wq = nn.Linear(2 * model_dim, model_dim, bias=False)
+        self.vq = nn.Linear(model_dim, 1, bias=False)
+        self.Wp1 = nn.Linear(2 * model_dim, model_dim, bias=False)
+        self.Wp2 = nn.Linear(2 * model_dim, model_dim, bias=False)
+        self.vp = nn.Linear(model_dim, 1, bias=False)
+        self.prediction = nn.Linear(2 * model_dim, model_dim, bias=False)
