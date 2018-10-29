@@ -42,3 +42,33 @@ class MwANP(nn.Module):
 
         # predict layer
         self.predict_layer = PredictionLayer(encode_size, dropout)
+
+    def forward(self, passage, question, answer, is_train):
+
+        # embedding layer
+        pas_embed = self.embed_dropout(self.embedding(passage))
+        que_embed = self.embed_dropout(self.embedding(question))
+        ans_embed = self.embed_dropout(self.embedding(answer))
+
+        # encode layer
+        pas_encode = self.pas_encoder(pas_embed)
+        que_encode = self.que_encoder(que_embed)
+        ans_encode = self.ans_encoder(ans_embed)
+
+        # attention layer
+        qtc = self.mult_concat_atten(pas_encode, que_encode, que_encode)
+        qtb = self.multi_bilinear_atten(pas_encode, que_encode, que_encode)
+        qtd = self.multi_dot_atten(pas_encode, que_encode, que_encode)
+        qtm = self.multi_minus_atten(pas_encode, que_encode, que_encode)
+
+        # aggregation layer
+        agg = self.agg_layer(qtc, qtb, qtd, qtm)
+
+        # prediction layer
+        score = self.predict_layer(que_encode, ans_encode, agg)
+
+        if not is_train:
+            return score.argmax(1)
+        else:
+            loss = -torch.log(score[:, 0]).mean()
+            return loss
