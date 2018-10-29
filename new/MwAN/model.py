@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from layers import EncodeLayer
-from attens import ConcatAtten, BilinearAtten, DotAtten, MinusAtten
+from layers import EncodeLayer, AggregateLayer, PredictionLayer
+from attens import ConcatAtten, BilinearAtten, DotAtten, MinusAtten, MultiHeadAtten
 
 
 class MwANP(nn.Module):
@@ -25,3 +25,20 @@ class MwANP(nn.Module):
 
         # attention part
         # mult-head concat attention
+        self.mult_concat_atten = MultiHeadAtten(
+            ConcatAtten, encode_size, num_heads, dropout)
+        # multi-head bilinear attention
+        self.multi_bilinear_atten = MultiHeadAtten(
+            BilinearAtten, encode_size, num_heads, dropout)
+        # multi-head dotatten attention
+        self.multi_dot_atten = MultiHeadAtten(
+            DotAtten, encode_size, num_heads, dropout)
+        # multi-head minus attention
+        self.multi_minus_atten = MultiHeadAtten(
+            MinusAtten, encode_size, num_heads, dropout)
+
+        # aggregation part
+        self.agg_layer = AggregateLayer(encode_size)
+
+        # predict layer
+        self.predict_layer = PredictionLayer(encode_size, dropout)
