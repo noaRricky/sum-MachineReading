@@ -48,20 +48,40 @@ class TransformerEncoder(nn.Module):
 
 class RNMTPlusEncoder(nn.Module):
 
-    def __init__(self, model_dim, dropout=0.1):
+    def __init__(self, embed_size, encode_size, dropout=0.1):
         super(RNMTPlusEncoder, self).__init__()
 
         self.dropout = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm(model_dim)
-        self.lstm = nn.LSTM(model_dim, model_dim,
+        self.layer_norm = nn.LayerNorm(encode_size)
+        self.lstm = nn.LSTM(embed_size, encode_size,
                             batch_first=True, bidirectional=True)
 
-    def forward(self, inputs):
+    def forward(self, embed):
 
-        residual = inputs
+        residual = embed
         output, _ = self.lstm(inputs)
         output = self.dropout(output)
         return self.layer_norm(residual + output)
+
+
+class EncodeLayer(nn.Module):
+
+    def __init__(self, vocab_size, embed_size, encode_size, num_heads=8,
+                 ffn_dim=2018, dropout=0.1):
+        super(EncodeLayer, self).__init__()
+
+        self.embedding = nn.Embedding(vocab_size, embed_size, padding_idx=0)
+        self.embed_dropout = nn.Dropout(dropout)
+        self.rnmtp_encoder = RNMTPlusEncoder(encode_size, dropout)
+        self.trans_encoder = TransformerEncoder(
+            encode_size, num_heads, ffn_dim)
+
+    def forward(self, src_vec):
+        embed = self.embedding(src_vec)
+        embed = self.embed_dropout(embed)
+        encode = self.rnmtp_encoder(embed)
+        encode, _ = self.trans_encoder(embed)
+        return encode
 
 
 class AggregateLayer(nn.Module):
