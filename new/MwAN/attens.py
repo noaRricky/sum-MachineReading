@@ -6,9 +6,12 @@ import torch.nn as nn
 class MultiHeadAtten(nn.Module):
     """Multi head attetnion"""
 
-    def __init__(self, model_dim, num_heads=8, dropout=0.1):
+    def __init__(self, atten_unit, encode_size, num_heads=8, dropout=0.1):
         super(MultiHeadAtten, self).__init__()
 
+        model_dim = encode_size * 2
+
+        self.attention = atten_unit
         self.num_heads = num_heads
         self.dim_per_head = d_k = d_v = model_dim // num_heads
 
@@ -16,8 +19,8 @@ class MultiHeadAtten(nn.Module):
         self.linear_k = nn.Linear(model_dim, num_heads * d_k)
         self.linear_v = nn.Linear(model_dim, num_heads * d_v)
 
-        scale = d_k ** -0.5
-        self.attention = ScaledDotProductAtten(scale)
+        unit_encode_size = d_k // 2
+        self.attention = atten_unit(unit_encode_size, dropout)
         self.linear_final = nn.Linear(num_heads * d_v, model_dim)
         self.dropout = nn.Dropout(dropout)
 
@@ -65,9 +68,11 @@ class ScaledDotProductAtten(nn.Module):
     """Scaled dot-product attention mechainsm
     """
 
-    def __init__(self, scale=None, atten_dropout=0.1):
+    def __init__(self, encode_size, atten_dropout=0.1):
         super(ScaledDotProductAtten, self).__init__()
-        self.scale = scale
+
+        encode_size = 2 * encode_size
+        self.scale = encode_size ** -0.5
         self.dropout = nn.Dropout(atten_dropout)
         self.softmax = nn.Softmax(dim=2)
 
@@ -97,12 +102,12 @@ class ScaledDotProductAtten(nn.Module):
 
 class ConcatAtten(nn.Module):
 
-    def __init__(self, encoder_size, atten_dropout=0.0):
+    def __init__(self, encode_size, atten_dropout=0.0):
         super(ConcatAtten, self).__init__()
 
-        self.Wc1 = nn.Linear(2 * encoder_size, encoder_size, bias=False)
-        self.Wc2 = nn.Linear(2 * encoder_size, encoder_size, bias=False)
-        self.vc = nn.Linear(encoder_size, 1, bias=False)
+        self.Wc1 = nn.Linear(2 * encode_size, encode_size, bias=False)
+        self.Wc2 = nn.Linear(2 * encode_size, encode_size, bias=False)
+        self.vc = nn.Linear(encode_size, 1, bias=False)
         self.softmax = nn.Softmax(dim=2)
         self.dropout = nn.Dropout(atten_dropout)
 
@@ -122,10 +127,10 @@ class ConcatAtten(nn.Module):
 
 class BilinearAtten(nn.Module):
 
-    def __init__(self, encoder_size: int, atten_dropout=0.0):
+    def __init__(self, encode_size: int, atten_dropout=0.0):
         super(BilinearAtten, self).__init__()
 
-        self.Wb = nn.Linear(2 * encoder_size, encoder_size, bias=False)
+        self.Wb = nn.Linear(2 * encode_size, encode_size, bias=False)
         self.softmax = nn.Softmax(dim=2)
         self.dropout = nn.Dropout(atten_dropout)
 
@@ -142,11 +147,11 @@ class BilinearAtten(nn.Module):
 
 class DotAtten(nn.Module):
 
-    def __init__(self, encoder_size: int, atten_dropout=0.0):
+    def __init__(self, encode_size: int, atten_dropout=0.0):
         super(DotAtten, self).__init__()
 
-        self.Wd = nn.Linear(2 * encoder_size, encoder_size, bias=False)
-        self.vd = nn.Linear(encoder_size, 1, bias=False)
+        self.Wd = nn.Linear(2 * encode_size, encode_size, bias=False)
+        self.vd = nn.Linear(encode_size, 1, bias=False)
         self.softmax = nn.Softmax(dim=2)
         self.dropout = nn.Dropout(atten_dropout)
 
@@ -166,11 +171,11 @@ class DotAtten(nn.Module):
 
 class MinusAtten(nn.Module):
 
-    def __init__(self, encoder_size, atten_dropout=0.1):
+    def __init__(self, encode_size, atten_dropout=0.1):
         super(MinusAtten, self).__init__()
 
-        self.Wm = nn.Linear(2 * encoder_size, encoder_size, bias=False)
-        self.vm = nn.Linear(encoder_size, 1, bias=False)
+        self.Wm = nn.Linear(2 * encode_size, encode_size, bias=False)
+        self.vm = nn.Linear(encode_size, 1, bias=False)
         self.softmax = nn.Softmax(dim=2)
         self.dropout = nn.Dropout(atten_dropout)
 
@@ -189,6 +194,7 @@ class MinusAtten(nn.Module):
         return context, atten
 
 
+"""
 class SelfAtten(nn.Module):
 
     def __init__(self, model_dim, atten_dropout=0.1):
@@ -214,3 +220,4 @@ class SelfAtten(nn.Module):
         atten = self.dropout(atten)
         context = torch.bmm(atten, value)
         return context, atten
+"""
