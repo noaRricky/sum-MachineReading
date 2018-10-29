@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from layers import EncodeLayer
+from attens import ConcatAtten, BilinearAtten, DotAtten, MinusAtten
 
 
 class MwANP(nn.Module):
@@ -23,3 +24,4 @@ class MwANP(nn.Module):
             embed_size, encode_size, num_heads, ffn_dim, dropout)
 
         # attention part
+        # mult-head concat attention

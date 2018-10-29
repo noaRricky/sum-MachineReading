@@ -221,3 +221,7 @@ class SelfAtten(nn.Module):
         context = torch.bmm(atten, value)
         return context, atten
 """
+
+if __name__ == '__main__':
+    MultiHeadAtten(DotAtten, encode_size=10, num_heads=8, dropout=0.1)
+    print(MultiHeadAtten)
