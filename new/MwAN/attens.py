@@ -187,3 +187,30 @@ class MinusAtten(nn.Module):
         atten = self.dropout(atten)
         context = torch.bmm(atten, value)
         return context, atten
+
+
+class SelfAtten(nn.Module):
+
+    def __init__(self, model_dim, atten_dropout=0.1):
+        super(SelfAtten, self).__init__()
+
+        self.Ws = nn.Linear(2 * model_dim, model_dim, bias=False)
+        self.vs = nn.Linear(model_dim, 1, bias=False)
+        self.dropout = nn.Dropout(atten_dropout)
+        self.softmax = nn.Softmax(dim=2)
+
+    def forward(self, hidden, atten_mask=None):
+
+        query = hidden.unsqueeze(1)
+        key = hidden.unsqueeze(2)
+        value = hidden
+
+        sjt = self.vs(torch.tanh(self.Ws(query * key))).squeeze()
+
+        if atten_mask:
+            sjt.masked_fill_(atten_mask, -np.inf)
+
+        atten = self.softmax(sjt)
+        atten = self.dropout(atten)
+        context = torch.bmm(atten, value)
+        return context, atten

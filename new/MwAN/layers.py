@@ -75,3 +75,9 @@ class AggregateLayer(nn.Module):
     def forward(self, hp, qts, qtc, qtd, qtb, qtm):
         aggregation = torch.cat([hp, qts, qtc, qtd, qtb, qtm], dim=2)
         aggregation_represent, _ = self.gru_agg(aggregation)
+
+
+class PredictionLayer(nn.Module):
+
+    def __init__(self, model_dim):
+        super(PredictionLayer, self).__init__()
