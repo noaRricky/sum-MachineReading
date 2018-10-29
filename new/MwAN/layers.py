@@ -59,26 +59,22 @@ class RNMTPlusEncoder(nn.Module):
     def forward(self, embed):
 
         residual = embed
-        output, _ = self.lstm(inputs)
+        output, _ = self.lstm(embed)
         output = self.dropout(output)
         return self.layer_norm(residual + output)
 
 
 class EncodeLayer(nn.Module):
 
-    def __init__(self, vocab_size, embed_size, encode_size, num_heads=8,
+    def __init__(self, embed_size, encode_size, num_heads=8,
                  ffn_dim=2018, dropout=0.1):
         super(EncodeLayer, self).__init__()
 
-        self.embedding = nn.Embedding(vocab_size, embed_size, padding_idx=0)
-        self.embed_dropout = nn.Dropout(dropout)
         self.rnmtp_encoder = RNMTPlusEncoder(encode_size, dropout)
         self.trans_encoder = TransformerEncoder(
             encode_size, num_heads, ffn_dim)
 
-    def forward(self, src_vec):
-        embed = self.embedding(src_vec)
-        embed = self.embed_dropout(embed)
+    def forward(self, embed):
         encode = self.rnmtp_encoder(embed)
         encode, _ = self.trans_encoder(embed)
         return encode
