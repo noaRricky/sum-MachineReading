@@ -56,16 +56,16 @@ class MwANP(nn.Module):
         ans_encode = self.ans_encoder(ans_embed)
 
         # attention layer
-        qtc = self.mult_concat_atten(pas_encode, que_encode, que_encode)
-        qtb = self.multi_bilinear_atten(pas_encode, que_encode, que_encode)
-        qtd = self.multi_dot_atten(pas_encode, que_encode, que_encode)
-        qtm = self.multi_minus_atten(pas_encode, que_encode, que_encode)
+        qtc = self.mult_concat_atten(que_encode, pas_encode, pas_encode)
+        qtb = self.multi_bilinear_atten(que_encode, pas_encode, pas_encode)
+        qtd = self.multi_dot_atten(que_encode, pas_encode, pas_encode)
+        qtm = self.multi_minus_atten(que_encode, pas_encode, pas_encode)
 
         # aggregation layer
         agg = self.agg_layer(qtc, qtb, qtd, qtm)
 
         # prediction layer
-        score = self.predict_layer(que_encode, ans_encode, agg)
+        score = self.predict_layer(pas_encode, ans_encode, agg)
 
         if not is_train:
             return score.argmax(1)
